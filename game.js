@@ -39,6 +39,9 @@ let konamiIdx = 0;
 // Typing RAMONA during a level = no heart loss for that level only (reset by startLevel)
 const RAMONA = 'ramona';
 let ramonaIdx = 0;
+// Typing ENDING on the title screen = tour mode: every level plus both endings
+const ENDING_CODE = 'ending';
+let endingIdx = 0;
 // WASD aliases the arrow keys; Konami matching below uses the raw key so 'a' still counts as A
 const WASD = { w: 'ArrowUp', a: 'ArrowLeft', s: 'ArrowDown', d: 'ArrowRight' };
 const mapKey = key => WASD[key.toLowerCase()] || key;
@@ -56,6 +59,15 @@ addEventListener('keydown', e => {
     } else ramonaIdx = k === RAMONA[0] ? 1 : 0;
   }
   if (k === 'm' && !ramonaTyping) audio.toggleMute();
+  if (G.state === 'title') {
+    if (k === ENDING_CODE[endingIdx]) {
+      if (++endingIdx === ENDING_CODE.length) {
+        endingIdx = 0;
+        audio.sfx('lengle');
+        openLevelSelect(true);
+      }
+    } else endingIdx = k === ENDING_CODE[0] ? 1 : 0;
+  }
   if (k === KONAMI[konamiIdx]) {
     if (++konamiIdx === KONAMI.length) { konamiIdx = 0; openLevelSelect(); }
   } else konamiIdx = k === KONAMI[0] ? 1 : 0;
@@ -1108,6 +1120,7 @@ const G = {
   clearStats: null,
   saveCache: null,
   levelSelectRun: false,
+  tourMode: false, // "ending" cheat: picker shows every level + both endings
 };
 function applySave(save) {
   G.collected = new Set(save ? save.collected : []);
@@ -1774,8 +1787,7 @@ function activateRamona() {
 function hurt(px) {
   if (P.iframes > 0 || G.superT > 0) return;
   if (!G.ramona) G.hearts--;
-  const lost = loseRunBooks(3);
-  if (lost) addPopup(lost + (lost === 1 ? ' BOOK FALLS AWAY!' : ' BOOKS FALL AWAY!'), P.x + P.w / 2, P.y - 14, '#7de8ff');
+  // collected books stay collected — hits only cost coffee
   P.iframes = 100;
   P.vx = (P.x + P.w / 2 < px ? -3 : 3);
   P.vy = -4.2;
@@ -1816,7 +1828,6 @@ function bossHit() {
 }
 function pitFall() {
   if (!G.ramona) G.hearts--;
-  const lost = loseRunBooks(3);
   audio.sfx('hurt');
   G.shake = 12;
   if (G.hearts <= 0) {
@@ -1825,7 +1836,6 @@ function pitFall() {
   }
   P.x = P.safeX; P.y = P.safeY - 4; P.vx = 0; P.vy = 0;
   P.iframes = 110; P.jumpCount = 0;
-  if (lost) addPopup(lost + (lost === 1 ? ' BOOK FELL AWAY!' : ' BOOKS FELL AWAY!'), P.x + P.w / 2, P.y - 14, '#7de8ff');
 }
 function spawnBurst(x, y, color, n, spd) {
   for (let i = 0; i < n; i++) {
@@ -3747,8 +3757,9 @@ function drawPerfectEnd() {
 }
 
 // ---------------------------------------------------------- level select
-function openLevelSelect() {
+function openLevelSelect(tour) {
   if (G.state === 'select') return;
+  G.tourMode = !!tour;
   G.state = 'select';
   G.stateT = 0;
   G.selIdx = 0;
@@ -3758,20 +3769,27 @@ function openLevelSelect() {
 }
 function updateSelect() {
   G.frame++;
-  const nOpts = LVL_META.length;
+  const nOpts = LVL_META.length + (G.tourMode ? 2 : 0);
   if (pressed.ArrowDown) { G.selIdx = (G.selIdx + 1) % nOpts; audio.sfx('menu'); }
   if (pressed.ArrowUp) { G.selIdx = (G.selIdx + nOpts - 1) % nOpts; audio.sfx('menu'); }
   if (pressed.Enter && G.stateT > 8) {
-    if (levelLocked(G.selIdx)) {
+    if (G.tourMode && G.selIdx === LVL_META.length) {
+      audio.sfx('door');
+      startCutscene();            // the dark "all a dream" ending
+    } else if (G.tourMode && G.selIdx === LVL_META.length + 1) {
+      audio.sfx('door');
+      startPerfect();             // the beach-house birthday ending
+    } else if (!G.tourMode && levelLocked(G.selIdx)) {
       audio.sfx('locked');
     } else {
       G.levelSelectRun = true;
       audio.sfx('door');
-      startLevel(G.selIdx, true);
+      startLevel(G.selIdx, true, G.tourMode); // tour mode bypasses locks
     }
   }
   if (pressed.Tab || pressed.Escape) {
     G.state = 'title'; G.menuSel = 0; G.stateT = 0; G.levelSelectRun = false;
+    G.tourMode = false;
     audio.play('theme');
   }
 }
@@ -3782,15 +3800,17 @@ function drawSelect() {
   for (let y = (G.frame >> 1) % 6; y < VH; y += 6) ctx.fillRect(0, y, VW, 1);
   drawTextC('CHOOSE A LEVEL', VW / 2, 18, 3, '#ffd23e', '#3a2410');
   const finalOpen = finalBattleUnlocked();
-  const hint = finalOpen ? "* JACK'S LAIR IS OPEN - FINISH THE STORY *"
+  const hint = G.tourMode ? '* ENDING TOUR: EVERY LEVEL & BOTH ENDINGS OPEN *'
+    : finalOpen ? "* JACK'S LAIR IS OPEN - FINISH THE STORY *"
     : kenwickUnlocked() ? '* KENWICK UNLOCKED - GO SAVE THE KIDS *'
     : 'BEAT THE FIRST 6 LEVELS TO UNLOCK KENWICK';
-  drawTextC(hint, VW / 2, 44, 1, finalOpen || kenwickUnlocked() ? '#ff5abf' : '#c9b8ec', '#000');
+  drawTextC(hint, VW / 2, 44, 1, G.tourMode || finalOpen || kenwickUnlocked() ? '#ff5abf' : '#c9b8ec', '#000');
+  const rowH = G.tourMode ? 18 : 20; // squeeze 10 rows in when the endings show
   for (let i = 0; i < LVL_META.length; i++) {
     const sel = i === G.selIdx;
-    const y = 64 + i * 20;
+    const y = 64 + i * rowH;
     const done = G.completedLevels.has(i);
-    const locked = levelLocked(i);
+    const locked = !G.tourMode && levelLocked(i);
     const label = i === LVL_META.length - 1 ? "L8 JACK'S LAIR - FINAL BATTLE" : 'L' + (i + 1) + ' ' + LVL_META[i].name;
     const color = locked ? '#453a5c' : sel ? '#fff' : i === LVL_META.length - 1 ? '#ff5a5a' : done ? '#5aff8f' : '#8a76b4';
     if (sel) drawText('>', VW / 2 - 140, y, 2, (G.frame >> 3) % 2 ? '#ffe45a' : '#ff5abf');
@@ -3802,6 +3822,17 @@ function drawSelect() {
       const total = LEVEL_BOOKS[i].length;
       const got = LEVEL_BOOKS[i].filter(b => G.collected.has(b)).length;
       drawText(got + '/' + total, VW - 64, y + 3, 1, got >= total ? '#ffd23e' : '#5aff8f', '#000');
+    }
+  }
+  if (G.tourMode) { // the two endings, straight from the cheat menu
+    const extras = ['THE DARK ENDING - ALL A DREAM?', 'THE PERFECT ENDING - HAPPY 44TH!'];
+    const extraCols = ['#c77bd6', '#ffd23e'];
+    for (let j = 0; j < 2; j++) {
+      const i = LVL_META.length + j;
+      const sel = i === G.selIdx;
+      const y = 64 + i * rowH;
+      if (sel) drawText('>', VW / 2 - 140, y, 2, (G.frame >> 3) % 2 ? '#ffe45a' : '#ff5abf');
+      drawText(extras[j], VW / 2 - 124, y, 2, sel ? '#fff' : extraCols[j]);
     }
   }
   drawTextC('ENTER: PLAY   TAB: BACK TO TITLE', VW / 2, 268, 1, '#6b5a8c');
