@@ -116,6 +116,19 @@ function textW(str, scale) { return String(str).length * 4 * scale - scale; }
 function drawTextC(str, cx, y, scale, color, outline) {
   drawText(str, cx - textW(str, scale) / 2, y, scale, color, outline);
 }
+function wrapPixelText(text, maxChars) {
+  const lines = [];
+  let line = '';
+  for (const word of String(text).split(/\s+/)) {
+    const next = line ? line + ' ' + word : word;
+    if (line && next.length > maxChars) {
+      lines.push(line);
+      line = word;
+    } else line = next;
+  }
+  if (line) lines.push(line);
+  return lines;
+}
 
 // ---------------------------------------------------------- sprites
 const PAL = {
@@ -817,6 +830,7 @@ const G = {
   powerFlashA: 0,
   powerLightningT: 0,
   powerStrikeX: 0,
+  powerBookTitle: '',
   frame: 0,
   menuSel: 0,
   invScroll: 0,
@@ -1281,7 +1295,7 @@ function startLevel(idx, freshHearts) {
   G.order = G.order.filter(i => G.collected.has(i)); // drop books from failed runs
   G.time = LEVEL_TIME;
   G.superT = 0;
-  G.powerBannerT = 0; G.powerFlashA = 0; G.powerLightningT = 0;
+  G.powerBannerT = 0; G.powerFlashA = 0; G.powerLightningT = 0; G.powerBookTitle = '';
   if (freshHearts) G.hearts = 3;
   L = genLevel(idx);
   P.x = 60; P.y = 180; P.vx = 0; P.vy = 0;
@@ -1559,6 +1573,7 @@ function updatePlay() {
         G.powerFlashA = 0.95;
         G.powerLightningT = 28;
         G.powerStrikeX = b.x;
+        G.powerBookTitle = bk.t;
         G.shake = Math.max(G.shake, 18);
         audio.sfx('lengle');
         audio.sfx('thunder');
@@ -2235,14 +2250,19 @@ function drawPowerDrama() {
     const age = 150 - G.powerBannerT;
     const alpha = Math.min(1, age / 10, G.powerBannerT / 24);
     const pulse = 1 + Math.sin(G.frame * 0.22) * 0.035;
+    const titleLines = wrapPixelText(G.powerBookTitle, 36).slice(0, 2);
+    const titleY = titleLines.length > 1 ? 30 : 38;
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.fillStyle = 'rgba(8,4,18,.72)';
-    ctx.fillRect(50, 72, VW - 100, 74);
-    ctx.translate(VW / 2, 88);
+    ctx.fillRect(32, 60, VW - 64, 116);
+    ctx.translate(VW / 2, 72);
     ctx.scale(pulse, pulse);
     drawTextC("L'ENGLE BOOK FOUND!", 0, 0, 4, '#ffe45a', '#3a2410');
-    drawTextC('SUPER READER - TRIPLE JUMP!', 0, 32, 2, '#ffffff', '#6e2a54');
+    for (let i = 0; i < titleLines.length; i++) {
+      drawTextC(titleLines[i], 0, titleY + i * 19, 3, '#ffffff', '#6e2a54');
+    }
+    drawTextC('SUPER READER - TRIPLE JUMP!', 0, titleY + titleLines.length * 19 + 6, 2, '#7de8ff', '#000');
     ctx.restore();
   }
 }
