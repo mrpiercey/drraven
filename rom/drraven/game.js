@@ -987,8 +987,8 @@ const LVL_META = [
   { name: 'AUBURN, ALABAMA',         sub: 'FOOTBALL & THE MASTERS DEGREE' },
   { name: 'POINT CLEAR, ALABAMA',    sub: 'MARRYING THE GREATEST HUSBAND IN THE WORLD' },
   { name: 'LEXINGTON, KENTUCKY',     sub: 'HORSE COUNTRY & THE UK PHD' },
-  { name: 'UK MEDICAL SCHOOL',       sub: 'PAGING DR. RAVEN' },
-  { name: 'KENWICK, KENTUCKY',       sub: 'SAVING SCARLETT, HANK & RAMONA' },
+  { name: 'MEDICAL SCHOOL',          sub: 'PAGING DR. RAVEN' },
+  { name: 'KENWICK',                 sub: 'SAVING SCARLETT, HANK & RAMONA' },
   { name: 'THE LAST BOOKS',          sub: "JACK'S KENNEL - THE FINAL BATTLE" },
 ];
 // theme id + ground colors (g ground, gD shade, gT top edge, gX accent)
@@ -1122,6 +1122,14 @@ function perfectRun() {
 function finalBattleUnlocked() {
   for (let i = 0; i < LVL_META.length - 1; i++) if (!G.completedLevels.has(i)) return false;
   return true;
+}
+// Kenwick (L7) opens once the first six levels are beaten; Jack's Lair follows Kenwick.
+function kenwickUnlocked() {
+  for (let i = 0; i < 6; i++) if (!G.completedLevels.has(i)) return false;
+  return true;
+}
+function levelLocked(i) {
+  return (i === 6 && !kenwickUnlocked()) || (i === LVL_META.length - 1 && !finalBattleUnlocked());
 }
 let L = null; // current level data
 const P = {   // player
@@ -1630,8 +1638,8 @@ function makeBgLayers(pal, idx) {
 }
 
 // ---------------------------------------------------------- level lifecycle
-function startLevel(idx, freshHearts) {
-  if (idx === LVL_META.length - 1 && !finalBattleUnlocked()) {
+function startLevel(idx, freshHearts, force) {
+  if (!force && levelLocked(idx)) {
     G.levelSelectRun = false;
     openLevelSelect();
     return;
@@ -2929,12 +2937,8 @@ function updateStory() {
       audio.sfx('menu');
       if (storyPage === 1) { audio.sfx('thunder'); flashA = 0.75; G.shake = 12; }
     } else {
-      // walk the map to Loxley before level 1
-      G.level = 0;
-      G.state = 'map'; G.stateT = 0;
-      G.mapT = 0; G.mapArrived = false;
-      audio.play('title');
-      audio.tempo(1);
+      // the adventure starts at the level picker
+      openLevelSelect();
     }
   }
 }
@@ -3749,9 +3753,6 @@ function drawPerfectEnd() {
 }
 
 // ---------------------------------------------------------- level select
-function selectableLevelCount() {
-  return finalBattleUnlocked() ? LVL_META.length : LVL_META.length - 1;
-}
 function openLevelSelect() {
   if (G.state === 'select') return;
   G.state = 'select';
@@ -3763,14 +3764,17 @@ function openLevelSelect() {
 }
 function updateSelect() {
   G.frame++;
-  const nOpts = selectableLevelCount();
+  const nOpts = LVL_META.length;
   if (pressed.ArrowDown) { G.selIdx = (G.selIdx + 1) % nOpts; audio.sfx('menu'); }
   if (pressed.ArrowUp) { G.selIdx = (G.selIdx + nOpts - 1) % nOpts; audio.sfx('menu'); }
   if (pressed.Enter && G.stateT > 8) {
-    // nOpts excludes the final battle until chapters 1-7 are complete.
-    G.levelSelectRun = true;
-    audio.sfx('door');
-    startLevel(G.selIdx, true);
+    if (levelLocked(G.selIdx)) {
+      audio.sfx('locked');
+    } else {
+      G.levelSelectRun = true;
+      audio.sfx('door');
+      startLevel(G.selIdx, true);
+    }
   }
   if (pressed.Tab || pressed.Escape) {
     G.state = 'title'; G.menuSel = 0; G.stateT = 0; G.levelSelectRun = false;
@@ -3782,53 +3786,49 @@ function drawSelect() {
   // scanline sparkle
   ctx.fillStyle = 'rgba(125,232,255,.04)';
   for (let y = (G.frame >> 1) % 6; y < VH; y += 6) ctx.fillRect(0, y, VW, 1);
-  drawTextC('LEVEL SELECT', VW / 2, 18, 3, '#ffd23e', '#3a2410');
+  drawTextC('CHOOSE A LEVEL', VW / 2, 18, 3, '#ffd23e', '#3a2410');
   const finalOpen = finalBattleUnlocked();
-  drawTextC(finalOpen ? '* FINAL BATTLE UNLOCKED *' : 'COMPLETE EACH CHAPTER TO MARK IT DONE', VW / 2, 44, 1, finalOpen ? '#ff5abf' : '#c9b8ec', '#000');
-  const nOpts = selectableLevelCount();
-  for (let i = 0; i < nOpts; i++) {
+  const hint = finalOpen ? "* JACK'S LAIR IS OPEN - FINISH THE STORY *"
+    : kenwickUnlocked() ? '* KENWICK UNLOCKED - GO SAVE THE KIDS *'
+    : 'BEAT THE FIRST 6 LEVELS TO UNLOCK KENWICK';
+  drawTextC(hint, VW / 2, 44, 1, finalOpen || kenwickUnlocked() ? '#ff5abf' : '#c9b8ec', '#000');
+  for (let i = 0; i < LVL_META.length; i++) {
     const sel = i === G.selIdx;
     const y = 64 + i * 20;
     const done = G.completedLevels.has(i);
-    const label = i === LVL_META.length - 1 ? 'L8 FINAL BATTLE - JACK THE DOG' : 'L' + (i + 1) + ' ' + LVL_META[i].name;
-    const color = sel ? '#fff' : i === LVL_META.length - 1 ? '#ff5a5a' : done ? '#5aff8f' : '#8a76b4';
+    const locked = levelLocked(i);
+    const label = i === LVL_META.length - 1 ? "L8 JACK'S LAIR - FINAL BATTLE" : 'L' + (i + 1) + ' ' + LVL_META[i].name;
+    const color = locked ? '#453a5c' : sel ? '#fff' : i === LVL_META.length - 1 ? '#ff5a5a' : done ? '#5aff8f' : '#8a76b4';
     if (sel) drawText('>', VW / 2 - 140, y, 2, (G.frame >> 3) % 2 ? '#ffe45a' : '#ff5abf');
     drawText(label, VW / 2 - 124, y, 2, color);
-    if (done) drawText('DONE', VW - 46, y + 3, 1, '#5aff8f', '#000');
+    if (locked) {
+      drawText('LOCKED', VW - 64, y + 3, 1, '#453a5c');
+    } else if (done) {
+      // books banked from this level, e.g. 90/112
+      const total = LEVEL_BOOKS[i].length;
+      const got = LEVEL_BOOKS[i].filter(b => G.collected.has(b)).length;
+      drawText(got + '/' + total, VW - 64, y + 3, 1, got >= total ? '#ffd23e' : '#5aff8f', '#000');
+    }
   }
   drawTextC('ENTER: PLAY   TAB: BACK TO TITLE', VW / 2, 268, 1, '#6b5a8c');
 }
 
 // ---------------------------------------------------------- screen updates (input)
-function titleOptions(save) {
-  const opts = [{ id: 'new', label: 'NEW GAME' }];
-  if (save) opts.push({ id: 'continue', label: 'CONTINUE (LEVEL ' + (save.level + 1) + ')' });
-  opts.push({ id: 'select', label: 'LEVEL SELECT' });
-  return opts;
+function titleOptions() {
+  return [{ id: 'start', label: 'START GAME' }];
 }
 function updateTitle() {
   G.frame++;
   if (!titleMusicStarted && G.frame > 5) { audio.play('theme'); titleMusicStarted = true; }
   if (G.saveCache === undefined || G.saveCache === null) G.saveCache = loadSave() || false;
-  const opts = titleOptions(G.saveCache);
-  const nOpts = opts.length;
-  if (pressed.ArrowDown) { G.menuSel = (G.menuSel + 1) % nOpts; audio.sfx('menu'); }
-  if (pressed.ArrowUp) { G.menuSel = (G.menuSel + nOpts - 1) % nOpts; audio.sfx('menu'); }
-  G.menuSel = Math.min(G.menuSel, nOpts - 1);
   if (pressed.Enter) {
     audio.sfx('door');
-    const choice = opts[G.menuSel].id;
-    if (choice === 'continue') {
-      applySave(G.saveCache);
-      G.levelSelectRun = false;
-      startLevel(G.saveCache.level, true);
-    } else if (choice === 'select') {
-      applySave(G.saveCache || null);
-      G.levelSelectRun = false;
-      openLevelSelect();
+    applySave(G.saveCache || null);
+    G.levelSelectRun = false;
+    if (G.saveCache) {
+      openLevelSelect(); // returning player: straight to the level picker
     } else {
-      applySave(null);
-      G.levelSelectRun = false;
+      // brand-new player: the backstory first, then the picker
       G.state = 'story'; G.stateT = 0;
       storyPage = 0; storyChars = 0; lastThunder = 0; flashA = 0;
       audio.play('story');
@@ -4170,7 +4170,7 @@ if (location.hash === '#perfect') startPerfect();
 else if (location.hash === '#beach') { G.state = 'perfectEnd'; G.stateT = 0; audio.play('happy'); }
 else if (lvlHash) {
   applySave(loadSave());
-  startLevel(+lvlHash[1] - 1, true);
+  startLevel(+lvlHash[1] - 1, true, true); // preview bypasses level locks
   if (G.state === 'intro') { G.state = 'play'; audio.play('level'); }
 }
 requestAnimationFrame(loop);
