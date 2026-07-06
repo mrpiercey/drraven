@@ -144,7 +144,7 @@ const PAL = {
   l:'#2e6fd0',                                      // lanyard
   i:'#1a1424', r:'#c0392b',                         // ink blot
   R:'#d94436', m:'#7d1f16',                         // envelope
-  c:'#7de8ff', O:'#ffd23e',                         // phone screen / yellow
+  c:'#7de8ff', O:'#ffd23e',                         // cyan wings / yellow
   d:'#5a3a86', T:'#7a52b0',                         // door frame purple
   C:'#3fae6a', y:'#ffd23e',                         // green / gold
   o:'#e8862e',                                      // orange
@@ -256,23 +256,18 @@ const E_ENVELOPE = [
   'RRRRRRRRRRRRRRRR',
   'WmWmWmWmWmWmWmWm',
 ];
-const E_PHONE = [
-  '.GGGGGGGG.',
-  'GGGGGGGGGG',
-  'GGccccccGG',
-  'GGccWWccGG',
-  'GGcWGGWcGG',
-  'GGcWGGWcGG',
-  'GGccWWccGG',
-  'GGccccccGG',
-  'GGcRRRRcGG',
-  'GGccccccGG',
-  'GGcRRRRcGG',
-  'GGccccccGG',
-  'GGGGGGGGGG',
-  'GGGGOOGGGG',
-  'GGGGGGGGGG',
-  '.GGGGGGGG.',
+const E_MOTH = [
+  '..cc..........cc..',
+  '.cccc...GG...cccc.',
+  'cccWcc.GGGG.ccWccc',
+  'ccccccGGGGGGcccccc',
+  '.ccccGGGOOGGGcccc.',
+  '..ccGGGGGGGGGGcc..',
+  '....GGGGOOGGGG....',
+  '.....GGGGGGGG.....',
+  '......GGGGGG......',
+  '.......G..G.......',
+  '......OO..OO......',
 ];
 // Coffee with cream, steam, a handle, saucer, and two sugar cubes.
 const COFFEE_SPR = [
@@ -469,7 +464,7 @@ const SPR = {
   raven: makeSprite(RAVEN_BIRD),
   blot: makeSprite(E_BLOT),
   env: makeSprite(E_ENVELOPE),
-  phone: makeSprite(E_PHONE),
+  moth: makeSprite(E_MOTH),
   coffee: makeSprite(COFFEE_SPR, {
     w: '#d9e8f0', N: '#f8f1dd', p: '#c99b6b', B: '#6b3e22', g: '#a88f78', W: '#ffffff',
   }),
@@ -816,6 +811,15 @@ function writeSave() {
 
 // ---------------------------------------------------------- game state
 const TILE = 16, GRAV = 0.38, JUMPV = -7.6, LEVEL_TIME = 120;
+const LEVEL_START_MINUTE = 18 * 60; // 6:00 PM; one game minute per real second
+function formatLevelClock(remaining) {
+  const elapsed = Math.max(0, Math.min(LEVEL_TIME, LEVEL_TIME - remaining));
+  const totalMinutes = LEVEL_START_MINUTE + Math.floor(elapsed + 0.0001);
+  const hour24 = Math.floor(totalMinutes / 60) % 24;
+  const minute = totalMinutes % 60;
+  const hour12 = ((hour24 + 11) % 12) + 1;
+  return hour12 + ':' + String(minute).padStart(2, '0') + ' PM';
+}
 const G = {
   state: 'title', // title, intro, play, inv, cleared, dead, timeup, ending
   level: 0,
@@ -965,7 +969,7 @@ function genLevel(idx) {
   // enemies
   const enemies = [];
   const eCount = Math.round(5 + idx * 1.7 + n / 45);
-  const types = ['blot', 'env', 'phone'];
+  const types = ['blot', 'env', 'moth'];
   for (let k = 0; k < eCount; k++) {
     const ex = 420 + (widthPx - 750) * (k / Math.max(1, eCount - 1)) + (rnd() - .5) * 120;
     const type = types[Math.floor(rnd() * 3)];
@@ -1316,7 +1320,7 @@ function completeLevel() {
   G.runSet = new Set();
   const nBooksHere = LEVEL_BOOKS[completedLevel].length;
   const gotHere = LEVEL_BOOKS[completedLevel].filter(i => G.collected.has(i)).length;
-  G.clearStats = { got: gotHere, of: nBooksHere, time: Math.ceil(G.time) };
+  G.clearStats = { got: gotHere, of: nBooksHere, clock: formatLevelClock(G.time) };
   G.completedLevels.add(completedLevel);
   writeSave();
   audio.stop();
@@ -1467,9 +1471,9 @@ function updatePlay() {
     audio.stop(); audio.sfx('gameover');
     return;
   }
-  if (G.time < 20 && Math.abs(G.time - Math.round(G.time)) < 1 / 120) audio.sfx('tick');
+  if (G.time <= 10 && Math.abs(G.time - Math.round(G.time)) < 1 / 120) audio.sfx('tick');
   const bossActive = L.boss.st !== 'wait' && L.boss.st !== 'dead';
-  audio.tempo(bossActive ? 1.32 : superOn ? 1.18 : (G.time < 20 ? 1.25 : 1));
+  audio.tempo(bossActive ? 1.32 : superOn ? 1.18 : (G.time <= 10 ? 1.25 : 1));
 
   // input → movement
   const maxV = superOn ? 3.1 : 2.2;
@@ -1607,9 +1611,10 @@ function updatePlay() {
     if (e.type === 'blot') {
       e.x = e.ax + Math.sin(e.t * 0.02 * e.speed) * 70;
       e.y = e.ay + Math.sin(e.t * 0.055) * 22;
-    } else if (e.type === 'phone') {
-      e.x = e.ax + Math.cos(e.t * 0.028 * e.speed) * 42;
-      e.y = e.ay + Math.sin(e.t * 0.028 * e.speed) * 42;
+    } else if (e.type === 'moth') {
+      // Book moths flutter in a figure-eight instead of circling like phones.
+      e.x = e.ax + Math.sin(e.t * 0.035 * e.speed) * 54;
+      e.y = e.ay + Math.sin(e.t * 0.07 * e.speed) * 24;
     } else { // envelope: hover, then swoop at player
       if (e.st === 'hover') {
         e.x = e.ax + Math.sin(e.t * 0.03) * 20;
@@ -1630,7 +1635,7 @@ function updatePlay() {
       }
     }
     // collision with player
-    const ew = e.type === 'phone' ? 10 : 16, eh = e.type === 'phone' ? 16 : 13;
+    const ew = e.type === 'moth' ? 18 : 16, eh = e.type === 'moth' ? 12 : 13;
     if (pcx > e.x - ew / 2 - 6 && pcx < e.x + ew / 2 + 6 &&
         pcy > e.y - eh / 2 - 12 && pcy < e.y + eh / 2 + 12) {
       if (superOn) {
@@ -2085,13 +2090,14 @@ function drawWorld() {
   for (const e of L.enemies) {
     if (!e.alive) continue;
     if (e.x < cam - 30 || e.x > cam + VW + 30) continue;
-    const spr = e.type === 'blot' ? SPR.blot : e.type === 'env' ? SPR.env : SPR.phone;
+    const spr = e.type === 'blot' ? SPR.blot : e.type === 'env' ? SPR.env : SPR.moth;
     const wob = Math.sin(e.t * 0.1) * 1.5;
-    if (e.type === 'phone') { // ring pulse
-      const pr = (e.t % 50) / 50;
-      ctx.save(); ctx.globalAlpha = (1 - pr) * 0.4;
-      ctx.strokeStyle = '#7de8ff'; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.arc(e.x, e.y, 8 + pr * 18, 0, 6.29); ctx.stroke();
+    if (e.type === 'moth') { // alternating wing shimmer
+      ctx.save();
+      ctx.globalAlpha = Math.sin(e.t * 0.24) * 0.18 + 0.28;
+      ctx.fillStyle = '#d8f8ff';
+      ctx.fillRect(Math.floor(e.x - 12), Math.floor(e.y - 4 + wob), 3, 2);
+      ctx.fillRect(Math.floor(e.x + 9), Math.floor(e.y - 4 + wob), 3, 2);
       ctx.restore();
     }
     ctx.drawImage(spr, Math.floor(e.x - spr.width / 2), Math.floor(e.y - spr.height / 2 + wob));
@@ -2194,9 +2200,10 @@ function drawHUD() {
   // throwable book ammo
   drawText('BOOKS ' + pad(ammoLeft(), 3), VW - 134, 8, 1, '#7de8ff');
   // timer
-  const t = Math.ceil(G.time);
-  const flash = t <= 20 && (G.frame >> 4) % 2 === 0;
-  drawText('TIME ' + pad(t, 3), VW - 66, 8, 1, flash ? '#ff5a5a' : '#fff');
+  const secondsLeft = Math.ceil(G.time);
+  const warning = secondsLeft <= 10;
+  const flash = warning && (G.frame >> 3) % 2 === 0;
+  drawText('TIME ' + formatLevelClock(G.time), VW - 82, 8, 1, flash ? '#ff5a5a' : '#fff');
   // boss banner
   const bz = L.boss;
   if (bz.st !== 'wait' && bz.st !== 'dead') {
@@ -2205,6 +2212,9 @@ function drawHUD() {
       : 'JACK THE DOG BLOCKS THE EXIT!';
     if ((G.frame >> 4) % 2 === 0) drawTextC(banner, VW / 2, 44, 1, '#ff5a5a', '#000');
     drawTextC('STOMP HIS HEAD OR PRESS ENTER TO THROW BOOKS', VW / 2, 54, 1, '#c9b8ec', '#000');
+  }
+  if (warning) {
+    drawTextC('BEDTIME IN ' + secondsLeft + '!', VW / 2, 66, 2, flash ? '#ff5a5a' : '#ffe45a', '#000');
   }
 
   // super meter
@@ -2996,7 +3006,7 @@ function updateDead() {
 }
 function updateTimeup() {
   G.frame++; updateFx();
-  if (G.stateT > 40 && pressed.Enter) startLevel(G.level, true);
+  if (G.stateT > 120 || (G.stateT > 40 && pressed.Enter)) startLevel(G.level, true);
 }
 function updateEnding() {
   G.frame++; updateFx();
@@ -3128,7 +3138,7 @@ function drawCleared() {
   const s = G.clearStats;
   drawTextC('LEVEL CLEAR!', VW / 2, 60, 4, '#ffd23e', '#3a2410');
   drawTextC('BOOKS COLLECTED: ' + s.got + ' / ' + s.of, VW / 2, 110, 2, '#fff');
-  drawTextC('TIME REMAINING: ' + s.time + 'S', VW / 2, 132, 1, '#c9b8ec');
+  drawTextC('FINISHED AT: ' + s.clock, VW / 2, 132, 1, '#c9b8ec');
   drawTextC('LIBRARY TOTAL: ' + G.collected.size + ' / ' + TOTAL_BOOKS, VW / 2, 148, 1, '#c9b8ec');
   if (s.got === s.of) drawTextC('PERFECT SHELF! EVERY BOOK FOUND!', VW / 2, 168, 1, '#5aff8f');
   const prompt = G.levelSelectRun ? 'PRESS ENTER FOR LEVEL SELECT' : 'PRESS ENTER FOR NEXT LEVEL';
@@ -3146,9 +3156,12 @@ function drawDead() {
 
 function drawTimeup() {
   drawWorld(); drawOverlayBox();
-  drawTextC("TIME'S UP!", VW / 2, 80, 4, '#ff5a5a');
-  drawTextC('THE LIBRARY IS CLOSING...', VW / 2, 120, 1, '#c9b8ec');
-  if (G.stateT > 40 && (G.frame >> 4) % 2 === 0) drawTextC('PRESS ENTER TO TRY AGAIN', VW / 2, 170, 1, '#fff');
+  drawTextC("IT'S 8:00 PM!", VW / 2, 72, 4, '#ffb0d8', '#000');
+  drawTextC('DR. RAVEN FELL ASLEEP...', VW / 2, 118, 2, '#c9b8ec', '#000');
+  drawTextC('THE CHAPTER IS STARTING OVER.', VW / 2, 146, 1, '#ffe45a', '#000');
+  const z = 1 + ((G.frame >> 4) % 3);
+  drawTextC('Z'.repeat(z), VW / 2, 170, 2, '#7de8ff', '#000');
+  if (G.stateT > 40 && (G.frame >> 4) % 2 === 0) drawTextC('PRESS ENTER TO WAKE UP EARLY', VW / 2, 210, 1, '#fff');
 }
 
 function drawEnding() {

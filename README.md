@@ -57,7 +57,9 @@ The story plays in pages — ENTER turns to the next part.
 
 ## Rules
 
-- **120 seconds per level.** Reach the exit door and press ENTER.
+- Each level clock runs from **6:00 PM to 8:00 PM**, advancing one in-game
+  minute per real second. A ten-second warning begins at 7:50 PM. At 8:00,
+  Dr. Raven falls asleep and the level automatically restarts.
 - **LEVEL SELECT** on the title screen lets you play chapters 1–7 in any
   order. The final battle with Jack stays hidden until all seven are
   completed; the ending only plays after the final battle.
@@ -72,7 +74,7 @@ The story plays in pages — ENTER turns to the next part.
   triggers **SUPER READER** mode with a lightning strike: faster,
   invincible, triple jump, and enemies go POOF on contact.
 - Enemies: **Ink Blots** (Rorschach tests with a grudge), **Overdue
-  Notices** (they swoop), and **Doomscrollers** (hypnotic phones).
+  Notices** (they swoop), and fluttering **Book Moths**.
 - **Jack the Dog guards every exit door.** Stomp his head or throw collected
   books (ENTER) to defeat him — he gets faster every level, and tougher
   from level 5 on. The door stays locked until he flees.
