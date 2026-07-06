@@ -522,6 +522,37 @@ const STUDENT_SPR = [
   '...GG..GG...',
   '...FF..FF...',
 ];
+// Sarah T. — med-school friend, red hair, Dr. Raven's height (L6 rescue)
+const SARAH_SPR = [
+  '......rrrrrrrrr.........',
+  '.....rrrrrrrrrrr........',
+  '....rrrrrrrrrrrrr.......',
+  '....rrrrrrrrrrrrr.......',
+  '...rrrSSSSSSSSrrr.......',
+  '...rrSSSSSSSSSSrr.......',
+  '...rrSSeSSSSeSSrr.......',
+  '...rrSSSSSSSSSSrr.......',
+  '...rrSSSMMMMSSSrr.......',
+  '...rrrSSSSSSSSrrr.......',
+  '...rrrrSSSSSSrrrr.......',
+  '...rrrr.SSSS.rrrr.......',
+  '...rrr.WWWWWW.rrr.......',
+  '...rr.WWWWWWWW.rr.......',
+  '...r.WWGGGGGGWW.r.......',
+  '.....WWGGGGGGWW.........',
+  '.....WWGGGGGGWW.........',
+  '....SWWGGGGGGWWS........',
+  '....WWWGGGGGGWWW........',
+  '.....WWGGGGGGWW.........',
+  '.....WWWWWWWWWW.........',
+  '.....WWWWWWWWWW.........',
+  '......GGG..GGG..........',
+  '......GGG..GGG..........',
+  '......GGG..GGG..........',
+  '......GGG..GGG..........',
+  '......GGG..GGG..........',
+  '.....FFFF..FFFF.........',
+];
 // a Kenwick skunk, tail up and ready to spray
 const SKUNK_SPR = [
   '..............WW',
@@ -713,6 +744,10 @@ const SPR = {
   }),
   skunk: makeSprite(SKUNK_SPR, {
     G: '#26262b', W: '#f4f4f8', e: '#ffffff', F: '#111118',
+  }),
+  sarah: makeSprite(SARAH_SPR, {
+    r: '#c9552e', e: '#4e7a9a', M: '#c46a6a',
+    W: '#f4f4f8', G: '#3aa8a0', F: '#26262b',
   }),
 };
 SPR.jackHurt = tinted(SPR.jack, '#ff4040', .5);
@@ -1041,7 +1076,9 @@ const TOTAL_LENGLE = BOOKS.filter(b => b.le).length;
 // Progress lives in memory for the CURRENT SESSION ONLY: unlocks and book
 // counts carry between levels while playing, but closing or reloading the
 // game starts completely fresh — previous playthroughs never carry over.
-const CAGE_LEVELS = [0, 2, 6]; // G-Daddy & Pep (L1), CC & Uncle B + dogs (L3), the kids (L7)
+// every locked-up rescue/prize: parents (L1), diploma (L2), Auburn crew (L3),
+// the Ph.D. safe (L5), Sarah T. (L6), the kids (L7)
+const CAGE_LEVELS = [0, 1, 2, 4, 5, 6];
 let sessionSave = null;
 function loadSave() {
   return sessionSave;
@@ -1289,15 +1326,21 @@ function genLevel(idx) {
     drift: giant ? 1.4 : 0.6 + idx * 0.12,
   };
 
-  // level 7: the kids locked in Jack's cage by the door
-  // level 1 (Loxley): G-Daddy & Pep — Dr. Raven's parents — in a kennel at the end
-  // level 3 (Auburn): CC & Uncle B with their dachshunds, Butter & Bacon
+  // Something is locked up at the end of every chapter (Jack's doing):
+  // L1 the parents' kennel, L2 the Bachelor's diploma, L3 CC & Uncle B + dogs,
+  // L5 the Ph.D. in a safe, L6 Sarah T. behind a door, L7 the kids' cage
   const cage = idx === 6
     ? { x: widthPx - 160, y: 256 - 32, w: 46, h: 32, open: false }
     : idx === 0
     ? { x: widthPx - 160, y: 256 - 32, w: 46, h: 32, open: false, parents: true }
     : idx === 2
     ? { x: widthPx - 160, y: 256 - 32, w: 60, h: 32, open: false, auburn: true }
+    : idx === 1
+    ? { x: widthPx - 150, y: 256 - 46, w: 30, h: 46, open: false, kind: 'diploma' }
+    : idx === 4
+    ? { x: widthPx - 150, y: 256 - 32, w: 32, h: 32, open: false, kind: 'safe' }
+    : idx === 5
+    ? { x: widthPx - 150, y: 256 - 40, w: 28, h: 40, open: false, kind: 'sarah' }
     : null;
 
   // level 4 (the wedding): Donnie appears once Jack is beaten
@@ -1503,6 +1546,74 @@ function drawWilsons() {
   drawText('HOT', px - 40, 169, 1, '#d93636');
   drawText('LUNCH MON-FRI', px - 24, 169, 1, '#2a2018');
   drawTextC('SOUPS - SANDWICHES', px, 179, 1, '#c9553e');
+}
+
+// a rolled diploma scroll; state 0 = in its case, 1 = freed (with mortarboard),
+// 2 = the Ph.D. (UK-blue ribbon + mortarboard)
+function drawDiploma(x, y, state) {
+  ctx.fillStyle = '#f2e9d8'; ctx.fillRect(x, y, 12, 8);
+  ctx.fillStyle = '#e0d0b0'; ctx.fillRect(x, y, 12, 2); ctx.fillRect(x, y + 6, 12, 2);
+  ctx.fillStyle = state === 2 ? '#2a52c9' : '#d93636'; ctx.fillRect(x + 5, y + 1, 3, 6);
+  if (state) { // mortarboard once freed
+    ctx.fillStyle = '#26262b'; ctx.fillRect(x - 2, y - 5, 16, 3); ctx.fillRect(x + 3, y - 8, 6, 3);
+    ctx.fillStyle = '#ffd23e'; ctx.fillRect(x + 13, y - 5, 1, 5); // tassel
+  }
+}
+// Wilmore's diploma case, Lexington's Ph.D. safe, and the med-school door
+// with Sarah T. behind it — all spring open the moment Jack is beaten.
+function drawObjectCage(cg) {
+  const x = cg.x, gy = 256;
+  const bob = Math.sin(G.frame * 0.08) * 3;
+  if (cg.kind === 'diploma') {
+    ctx.fillStyle = '#54381f'; ctx.fillRect(x + 8, gy - 14, 14, 14);     // pedestal
+    ctx.fillStyle = '#6e4a28'; ctx.fillRect(x + 5, gy - 16, 20, 3);
+    if (!cg.open) {
+      ctx.fillStyle = 'rgba(160,220,255,.35)'; ctx.fillRect(x + 3, gy - 44, 24, 28); // glass case
+      ctx.strokeStyle = '#ffd23e'; ctx.lineWidth = 1; ctx.strokeRect(x + 3.5, gy - 43.5, 23, 27);
+      drawDiploma(x + 9, gy - 36, 0);
+      ctx.fillStyle = '#d9a516'; ctx.fillRect(x + 12, gy - 18, 6, 5);    // lock
+    } else {
+      drawDiploma(x + 9, gy - 46 + bob, 1);
+    }
+  } else if (cg.kind === 'safe') {
+    ctx.fillStyle = '#3e3a46'; ctx.fillRect(x, gy - 32, 32, 32);
+    ctx.fillStyle = '#55515e'; ctx.fillRect(x + 2, gy - 30, 28, 28);
+    if (!cg.open) {
+      ctx.fillStyle = '#c9c9ce'; ctx.beginPath(); ctx.arc(x + 16, gy - 16, 6, 0, 6.29); ctx.fill(); // dial
+      ctx.fillStyle = '#3e3a46'; ctx.fillRect(x + 15, gy - 21, 2, 5);
+      ctx.fillStyle = '#8a8a92'; ctx.fillRect(x + 26, gy - 18, 3, 6);    // handle
+    } else {
+      ctx.fillStyle = '#16121e'; ctx.fillRect(x + 4, gy - 28, 24, 24);   // open mouth
+      ctx.fillStyle = '#55515e'; ctx.fillRect(x - 8, gy - 30, 8, 28);    // swung door
+      drawDiploma(x + 10, gy - 50 + bob, 2);
+    }
+  } else if (cg.kind === 'sarah') {
+    ctx.fillStyle = '#8fb0b8'; ctx.fillRect(x - 2, gy - 40, 30, 40);     // door frame
+    ctx.fillStyle = '#d93636';                                            // red cross above
+    ctx.fillRect(x + 9, gy - 46, 8, 2); ctx.fillRect(x + 12, gy - 49, 2, 8);
+    if (!cg.open) {
+      ctx.fillStyle = '#e8f0f2'; ctx.fillRect(x, gy - 38, 26, 38);       // door
+      ctx.fillStyle = '#cfe0e4'; ctx.fillRect(x + 6, gy - 33, 14, 11);   // window
+      ctx.fillStyle = '#c9552e'; ctx.fillRect(x + 8, gy - 32, 10, 4);    // Sarah peeking out
+      ctx.fillStyle = '#f6c9a0'; ctx.fillRect(x + 9, gy - 28, 8, 5);
+      ctx.fillStyle = '#26262b'; ctx.fillRect(x + 10, gy - 27, 2, 2); ctx.fillRect(x + 14, gy - 27, 2, 2);
+      ctx.fillStyle = '#d9a516'; ctx.fillRect(x + 20, gy - 22, 4, 5);    // lock
+    } else {
+      ctx.fillStyle = '#16121e'; ctx.fillRect(x, gy - 38, 26, 38);       // open doorway
+      ctx.fillStyle = '#e8f0f2'; ctx.fillRect(x - 12, gy - 38, 10, 38);  // door swung open
+      const hop = Math.abs(Math.sin(G.frame * 0.12)) * 4;
+      ctx.drawImage(SPR.sarah, Math.floor(x + 30), Math.floor(gy - SPR.sarah.height - hop));
+    }
+  }
+  if (!cg.open) {
+    if ((G.frame >> 4) % 2 === 0) drawTextC(cg.kind === 'sarah' ? 'HELP!' : 'LOCKED!', x + 14, gy - 58, 1, '#ffe45a', '#000');
+  } else if ((G.frame >> 4) % 3 !== 2) {
+    const lines = cg.kind === 'diploma' ? ['B.A. IN PSYCHOLOGY!', 'TIME TO GRADUATE!']
+      : cg.kind === 'safe' ? ['PH.D. SECURED!', 'DR. RAVEN, OFFICIALLY!']
+      : ['THANKS, DR. RAVEN!', 'LATE FOR ROUNDS!'];
+    drawTextC(lines[0], x - 34, gy - 62, 1, '#5aff8f', '#000');
+    drawTextC(lines[1], x - 34, gy - 52, 1, '#ffe45a', '#000');
+  }
 }
 
 // pre-rendered, theme-specific background layer (tiles horizontally, parallax)
@@ -2270,8 +2381,7 @@ function updatePlay() {
     if (dn.sayT > 0) dn.sayT--;
   }
 
-  // freeing the caged family (kids on L7, Dr. Raven's parents on L1,
-  // CC & Uncle B with Butter & Bacon on L3)
+  // beating Jack springs whatever he locked up at the end of the chapter
   if (L.cage && !L.cage.open && bz.st === 'dead') {
     L.cage.open = true;
     audio.sfx('clear');
@@ -2281,6 +2391,15 @@ function updatePlay() {
     } else if (L.cage.auburn) {
       addPopup('THANK YOU, SISTER-WOMAN!', L.cage.x + 28, L.cage.y - 26, '#5aff8f');
       addPopup('ARF! ARF!', L.cage.x + 28, L.cage.y - 14, '#ffe45a');
+    } else if (L.cage.kind === 'diploma') {
+      addPopup('BACHELORS DEGREE UNLOCKED!', L.cage.x + 15, L.cage.y - 26, '#5aff8f');
+      addPopup('PSYCHOLOGY - TIME TO GRADUATE!', L.cage.x + 15, L.cage.y - 14, '#ffe45a');
+    } else if (L.cage.kind === 'safe') {
+      addPopup('THE SAFE SWINGS OPEN!', L.cage.x + 16, L.cage.y - 26, '#5aff8f');
+      addPopup('PH.D. GET! DR. RAVEN, OFFICIALLY!', L.cage.x + 16, L.cage.y - 14, '#ffe45a');
+    } else if (L.cage.kind === 'sarah') {
+      addPopup('SARAH T. IS FREE!', L.cage.x + 14, L.cage.y - 26, '#5aff8f');
+      addPopup('THANKS, DR. RAVEN!', L.cage.x + 14, L.cage.y - 14, '#ffe45a');
     } else {
       addPopup('MOM!!!', L.cage.x + 23, L.cage.y - 14, '#5aff8f');
       addPopup('THE KIDS ARE FREE!', L.cage.x + 23, L.cage.y - 26, '#ffe45a');
@@ -2534,8 +2653,10 @@ function drawWorld() {
     ctx.restore();
   }
 
-  // the caged family (kids on L8, G-Daddy & Pep on L1, CC & Uncle B + dogs on L3)
-  if (L.cage) {
+  // whatever Jack locked up at the end of the chapter
+  if (L.cage && L.cage.kind) {
+    drawObjectCage(L.cage);
+  } else if (L.cage) {
     const cg = L.cage;
     ctx.fillStyle = 'rgba(10,6,18,.55)';
     ctx.fillRect(cg.x, cg.y, cg.w, cg.h);
@@ -3719,6 +3840,7 @@ function drawPerfectEnd() {
   kid(SPR.ramona, 336, 226);
   ctx.drawImage(SPR.cc, 196, 233);
   ctx.drawImage(SPR.uncleb, 360, 232);
+  ctx.drawImage(SPR.sarah, 384, 222); // Sarah T. made it to the party too
   // Butter & Bacon zooming along the wet sand
   ctx.drawImage(SPR.butter, Math.round(210 + Math.sin(f * 0.03) * 60), 209);
   ctx.save();
@@ -4028,7 +4150,10 @@ function drawIntro() {
   if (nl > 0) drawTextC('*' + nl + " L'ENGLE POWER BOOK" + (nl > 1 ? 'S' : '') + ' HIDDEN HERE *', VW / 2, 170, 1, '#ffd23e');
   drawTextC('120 SECONDS. REACH THE DOOR. GRAB EVERYTHING.', VW / 2, 192, 1, '#c9b8ec');
   const warn = G.level === 0 ? 'JACK HAS G-DADDY & PEP IN A KENNEL! SET THEM FREE!'
+    : G.level === 1 ? 'JACK LOCKED UP HER BACHELORS DEGREE! UNLOCK IT & GRADUATE!'
     : G.level === 2 ? 'JACK CAGED CC, UNCLE B, BUTTER & BACON! SET THEM FREE!'
+    : G.level === 4 ? 'JACK STUFFED HER PH.D. IN A SAFE! CRACK IT OPEN!'
+    : G.level === 5 ? 'JACK LOCKED SARAH T. BEHIND A DOOR! LET HER OUT!'
     : G.level === 6 ? 'JACK HAS SCARLETT, HANK & RAMONA IN A CAGE! SET THEM FREE!'
     : G.level === 7 ? 'GIANT JACK IS TWICE AS TALL AND HUNGRY FOR BOOKS!'
     : 'JACK THE DOG GUARDS THE EXIT' + (G.level > 0 ? ' - FASTER THAN BEFORE!' : '!');
