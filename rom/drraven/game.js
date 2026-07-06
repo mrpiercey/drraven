@@ -1105,9 +1105,19 @@ function applySave(save) {
   G.completedLevels = new Set(save ? save.completed : []);
   G.rescued = new Set(save ? save.rescued : []);
 }
-// The perfect ending: every book collected AND everyone rescued from Jack's cages.
+// Star ratings per level, from the share of its books banked:
+// 90%+ = 3 stars, 70-89% = 2, 50-69% = 1, under 50% = 0.
+function levelStars(i) {
+  const total = LEVEL_BOOKS[i].length;
+  if (!total) return 3;
+  const got = LEVEL_BOOKS[i].filter(b => G.collected.has(b)).length;
+  const pct = got * 100 / total;
+  return pct >= 90 ? 3 : pct >= 70 ? 2 : pct >= 50 ? 1 : 0;
+}
+// The perfect ending: 3 stars on every level AND everyone rescued from Jack's cages.
 function perfectRun() {
-  return G.collected.size >= TOTAL_BOOKS && CAGE_LEVELS.every(i => G.rescued.has(i));
+  for (let i = 0; i < LVL_META.length; i++) if (levelStars(i) < 3) return false;
+  return CAGE_LEVELS.every(i => G.rescued.has(i));
 }
 function finalBattleUnlocked() {
   for (let i = 0; i < LVL_META.length - 1; i++) if (!G.completedLevels.has(i)) return false;
@@ -1133,7 +1143,11 @@ let particles = [], popups = [], projs = [], lostBookFx = [], stinks = [];
 let shotsUsed = 0, throwCool = 0;
 function ammoLeft() { return Math.max(0, G.runSet.size - shotsUsed); }
 
-function totalCollected() { return G.collected.size + G.runSet.size; }
+function totalCollected() {
+  let n = G.collected.size;
+  for (const i of G.runSet) if (!G.collected.has(i)) n++; // re-collected books count once
+  return n;
+}
 function pcxOf() { return P.x + P.w / 2; }
 function lengleCount() {
   let n = 0;
@@ -1145,7 +1159,9 @@ function lengleCount() {
 // ---------------------------------------------------------- level generation
 function genLevel(idx) {
   const rnd = RNG(0xB00C + idx * 7919);
-  const bookIdxs = LEVEL_BOOKS[idx].filter(i => !G.collected.has(i));
+  // every book reappears on every run, so a level can always be re-swept
+  // for a better star rating (banked totals only ever grow — it's a set)
+  const bookIdxs = LEVEL_BOOKS[idx].slice();
   const allIdxs = LEVEL_BOOKS[idx];
   const n = allIdxs.length;
   const widthPx = 700 + n * 34;
@@ -1950,7 +1966,7 @@ function updatePlay() {
     if (Math.abs(b.x - pcx) < hitX && Math.abs(by - pcy) < hitY) {
       b.got = true;
       G.runSet.add(b.i);
-      G.order.push(b.i);
+      if (!G.collected.has(b.i)) G.order.push(b.i); // re-collected books aren't re-listed
       const bk = BOOKS[b.i];
       if (b.gold) {
         G.superT = 600;
@@ -3560,10 +3576,13 @@ function drawPerfect() {
   ctx.fillStyle = '#f0806e';
   for (let by = 110; by < 205; by += 14) ctx.fillRect(214, by, 84, 5);
   ctx.fillStyle = 'rgba(255,255,255,.20)'; ctx.fillRect(240, 102, 32, 108);
-  // the kids at their mom's bedside (kept above the dialogue box)
-  ctx.drawImage(SPR.scarlett, 176, 100);
-  ctx.drawImage(SPR.hank, 190, 122);
-  ctx.drawImage(SPR.ramona, 176, 142);
+  // the kids at their mom's bedside (kept above the dialogue box), drawn 2x
+  const kid = (spr, kx, ky) => {
+    ctx.save(); ctx.translate(kx, ky); ctx.scale(2, 2); ctx.drawImage(spr, 0, 0); ctx.restore();
+  };
+  kid(SPR.scarlett, 160, 94);
+  kid(SPR.hank, 188, 118);
+  kid(SPR.ramona, 162, 142);
   // Donnie walks in from the door carrying her coffee
   if (pfPhase >= 2) {
     const t = pfDonnieT / 60;
@@ -3691,11 +3710,15 @@ function drawPerfectEnd() {
   ctx.drawImage(SPR.pep, 170, 232);
   ctx.drawImage(SPR.stand, 224, 218);
   ctx.drawImage(SPR.donnie, 256, 218);
-  ctx.drawImage(SPR.scarlett, 300, 236);
-  ctx.drawImage(SPR.hank, 316, 237);
-  ctx.drawImage(SPR.ramona, 332, 237);
+  // the kids at 2x so they stand kid-height next to their parents
+  const kid = (spr, kx, ky) => {
+    ctx.save(); ctx.translate(kx, ky); ctx.scale(2, 2); ctx.drawImage(spr, 0, 0); ctx.restore();
+  };
+  kid(SPR.scarlett, 292, 224);
+  kid(SPR.hank, 314, 226);
+  kid(SPR.ramona, 336, 226);
   ctx.drawImage(SPR.cc, 196, 233);
-  ctx.drawImage(SPR.uncleb, 352, 232);
+  ctx.drawImage(SPR.uncleb, 360, 232);
   // Butter & Bacon zooming along the wet sand
   ctx.drawImage(SPR.butter, Math.round(210 + Math.sin(f * 0.03) * 60), 209);
   ctx.save();
@@ -3801,10 +3824,12 @@ function drawSelect() {
     if (locked) {
       drawText('LOCKED', VW - 64, y + 3, 1, '#453a5c');
     } else if (done) {
-      // books banked from this level, e.g. 90/112
+      // banked books and the star rating, e.g. 90/112 ***
       const total = LEVEL_BOOKS[i].length;
       const got = LEVEL_BOOKS[i].filter(b => G.collected.has(b)).length;
-      drawText(got + '/' + total, VW - 64, y + 3, 1, got >= total ? '#ffd23e' : '#5aff8f', '#000');
+      const stars = levelStars(i);
+      drawText(got + '/' + total, VW - 96, y + 3, 1, stars >= 3 ? '#ffd23e' : '#5aff8f', '#000');
+      drawText('*'.repeat(stars) || '-', VW - 56, y + 3, 1, stars >= 3 ? '#ffd23e' : stars > 0 ? '#c9b8ec' : '#453a5c', '#000');
     }
   }
   if (G.tourMode) { // the two endings, straight from the cheat menu
@@ -3818,6 +3843,7 @@ function drawSelect() {
       drawText(extras[j], VW / 2 - 124, y, 2, sel ? '#fff' : extraCols[j]);
     }
   }
+  if (!G.tourMode) drawTextC('3 STARS = 90% OF A LEVELS BOOKS. 3-STAR EVERYTHING FOR THE PERFECT ENDING!', VW / 2, 252, 1, '#8a76b4');
   drawTextC('ENTER: PLAY   TAB: BACK TO TITLE', VW / 2, 268, 1, '#6b5a8c');
 }
 
@@ -4047,11 +4073,16 @@ function drawInventory() {
 function drawCleared() {
   drawWorld(); drawOverlayBox();
   const s = G.clearStats;
-  drawTextC('LEVEL CLEAR!', VW / 2, 60, 4, '#ffd23e', '#3a2410');
-  drawTextC('BOOKS COLLECTED: ' + s.got + ' / ' + s.of, VW / 2, 110, 2, '#fff');
-  drawTextC('FINISHED AT: ' + s.clock, VW / 2, 132, 1, '#c9b8ec');
-  drawTextC('LIBRARY TOTAL: ' + G.collected.size + ' / ' + TOTAL_BOOKS, VW / 2, 148, 1, '#c9b8ec');
-  if (s.got === s.of) drawTextC('PERFECT SHELF! EVERY BOOK FOUND!', VW / 2, 168, 1, '#5aff8f');
+  drawTextC('LEVEL CLEAR!', VW / 2, 52, 4, '#ffd23e', '#3a2410');
+  // the star verdict, front and center
+  const stars = levelStars(G.level);
+  const starStr = '*'.repeat(stars) + '.'.repeat(3 - stars);
+  drawTextC(starStr, VW / 2, 88, 4, stars >= 3 ? '#ffd23e' : '#c9b8ec', '#3a2410');
+  drawTextC('BOOKS COLLECTED: ' + s.got + ' / ' + s.of, VW / 2, 118, 2, '#fff');
+  drawTextC('FINISHED AT: ' + s.clock, VW / 2, 138, 1, '#c9b8ec');
+  drawTextC('LIBRARY TOTAL: ' + G.collected.size + ' / ' + TOTAL_BOOKS, VW / 2, 152, 1, '#c9b8ec');
+  if (stars >= 3) drawTextC(s.got === s.of ? 'PERFECT SHELF! EVERY BOOK FOUND!' : '3 STARS! A SUPER READER AT WORK!', VW / 2, 170, 1, '#5aff8f');
+  else drawTextC('REPLAY THE LEVEL - THE BOOKS COME BACK. 90% EARNS 3 STARS!', VW / 2, 170, 1, '#7de8ff');
   const prompt = G.levelSelectRun ? 'PRESS ENTER FOR LEVEL SELECT' : 'PRESS ENTER FOR NEXT LEVEL';
   if (G.stateT > 40 && (G.frame >> 4) % 2 === 0) drawTextC(prompt, VW / 2, 210, 1, '#fff');
 }
