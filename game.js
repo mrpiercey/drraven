@@ -1151,11 +1151,8 @@ function levelStars(i) {
   const pct = got * 100 / total;
   return pct >= 90 ? 3 : pct >= 70 ? 2 : pct >= 50 ? 1 : 0;
 }
-// The perfect ending: 3 stars on every level AND everyone rescued from Jack's cages.
-function perfectRun() {
-  for (let i = 0; i < LVL_META.length; i++) if (levelStars(i) < 3) return false;
-  return CAGE_LEVELS.every(i => G.rescued.has(i));
-}
+// The ending is cast by stars: every 3-star chapter sends its characters to
+// the birthday (see endingCast); zero 3-star chapters means the dark ending.
 function finalBattleUnlocked() {
   for (let i = 0; i < LVL_META.length - 1; i++) if (!G.completedLevels.has(i)) return false;
   return true;
@@ -1795,8 +1792,8 @@ function completeLevel() {
   audio.stop();
   audio.sfx('clear');
   if (completedLevel === LVL_META.length - 1) {
-    if (perfectRun()) startPerfect();
-    else startCutscene();
+    if (threeStarCount() > 0) startPerfect(); // cast scales with 3-star levels
+    else startCutscene();                     // zero 3-star levels: the bad ending
   } else {
     if (!G.levelSelectRun) G.level = completedLevel + 1;
     G.state = 'cleared';
@@ -3574,43 +3571,89 @@ function drawCutscene() {
   }
 }
 
-// ---------------------------------------------------------- perfect ending
-// Earned by collecting all 1,026 books AND rescuing everyone from Jack's
-// cages. No storm, no dread: Dr. Raven wakes in a sunny beach house with her
-// whole family, then everyone gathers on the beach for her 44th birthday.
-const PERFECT_BOXES = [
-  { who: null, lines: ['DR. RAVEN WAKES UP IN A SUNNY', 'BEACH HOUSE. EVERY BOOK IS', 'SAFE ON ITS SHELF.'] },
-  { who: 'DR. RAVEN', lines: ['WHAT A DREAM... WAIT.', 'I SMELL COFFEE... AND THE SEA?'] },
-  { who: 'DONNIE', lines: ['GOOD MORNING, BIRTHDAY GIRL!', 'FRESH COFFEE, JUST HOW', 'YOU LIKE IT.'] },
-  { who: 'DONNIE', lines: ['DRINK UP! WE HAVE TO WALK DOWN', 'TO THE BOOKSTORE. WE OPEN IT', 'TODAY - FOR YOUR 44TH BIRTHDAY.'] },
-  { who: 'SCARLETT', lines: ['MOM! GUESS WHAT? WE ALL MADE', 'HONOR ROLL ON OUR REPORT CARDS!'] },
-  { who: 'HANK', lines: ['AND WE KEPT OUR ROOMS CLEAN.', 'REALLY CLEAN. YOU CAN CHECK!'] },
-  { who: 'RAMONA', lines: ['WE EVEN SCRUBBED THE BATHROOMS!', 'THEY SPARKLE LIKE THE OCEAN.'] },
-  { who: 'DR. RAVEN', lines: ['I LOVE MY FAMILY SO MUCH.', 'I AM SO THANKFUL FOR MY', 'AMAZING HUSBAND...'] },
-  { who: 'DR. RAVEN', lines: ['...WHO CREATED THIS INCREDIBLE', 'GIFT FOR MY BIRTHDAY.', 'BEST. BIRTHDAY. EVER.'] },
-];
+// ---------------------------------------------------------- the good ending
+// Earned by 3-starring at least one level. Every chapter with 3 stars sends
+// its characters (or prizes) to the birthday: they join the wake-up dialogue,
+// bring their gifts, and appear on the beach. Zero 3-star levels = the dark
+// ending instead.
+function endingCast() {
+  return {
+    parents: levelStars(0) >= 3, // G-Daddy & Pep
+    ba: levelStars(1) >= 3,      // the Bachelor's degree
+    auburn: levelStars(2) >= 3,  // CC & Uncle Bryant, Butter & Bacon
+    donnie: levelStars(3) >= 3,  // Donnie (and the bookstore)
+    phd: levelStars(4) >= 3,     // the Ph.D.
+    sarah: levelStars(5) >= 3,   // Sarah T.
+    kids: levelStars(6) >= 3,    // Scarlett, Hank & Ramona
+  };
+}
+const FULL_CAST = { parents: true, ba: true, auburn: true, donnie: true, phd: true, sarah: true, kids: true };
+function threeStarCount() {
+  let n = 0;
+  for (let i = 0; i < LVL_META.length; i++) if (levelStars(i) >= 3) n++;
+  return n;
+}
+// the dialogue assembles itself from whoever earned a spot — missing
+// characters simply don't get lines
+function buildPerfectBoxes(c) {
+  const boxes = [
+    { who: null, lines: ['DR. RAVEN WAKES UP IN A SUNNY', 'BEACH HOUSE. EVERY BOOK IS', 'SAFE ON ITS SHELF.'] },
+    { who: 'DR. RAVEN', lines: ['WHAT A DREAM... WAIT.', 'I SMELL COFFEE... AND THE SEA?'] },
+  ];
+  if (c.donnie) {
+    boxes.push({ who: 'DONNIE', lines: ['GOOD MORNING, BIRTHDAY GIRL!', 'FRESH COFFEE, JUST HOW', 'YOU LIKE IT.'] });
+    boxes.push({ who: 'DONNIE', lines: ['DRINK UP! WE HAVE TO WALK DOWN', 'TO THE BOOKSTORE. WE OPEN IT', 'TODAY - FOR YOUR 44TH BIRTHDAY.'] });
+  }
+  if (c.kids) {
+    boxes.push({ who: 'SCARLETT', lines: ['MOM! GUESS WHAT? WE ALL MADE', 'HONOR ROLL ON OUR REPORT CARDS!'] });
+    boxes.push({ who: 'HANK', lines: ['AND WE KEPT OUR ROOMS CLEAN.', 'REALLY CLEAN. YOU CAN CHECK!'] });
+    boxes.push({ who: 'RAMONA', lines: ['WE EVEN SCRUBBED THE BATHROOMS!', 'THEY SPARKLE LIKE THE OCEAN.'] });
+  }
+  if (c.parents) boxes.push({ who: 'G-DADDY & PEP', lines: ['HAPPY BIRTHDAY, SWEETHEART.', "WE'RE GIVING YOU 500,000", 'DOLLARS WORTH OF SILVER!'] });
+  if (c.auburn) boxes.push({ who: 'CC & UNCLE BRYANT', lines: ['WAR EAGLE, SISTER-WOMAN!', 'SEASON TICKETS TO AUBURN', 'FOOTBALL - ALL YOURS!'] });
+  if (c.sarah) boxes.push({ who: 'SARAH T.', lines: ['DR. RAVEN, YOU HAVE EARNED IT:', "YOU'RE GETTING A RAISE!"] });
+  if (c.ba || c.phd) boxes.push({
+    who: null,
+    lines: [
+      c.ba && c.phd ? 'HER B.A. AND HER PH.D. HANG' : c.ba ? 'HER BACHELORS DEGREE HANGS' : 'HER PH.D. HANGS',
+      'PROUDLY ON THE BEDROOM WALL.',
+    ],
+  });
+  if (c.donnie) {
+    boxes.push({ who: 'DR. RAVEN', lines: ['I LOVE MY FAMILY SO MUCH.', 'I AM SO THANKFUL FOR MY', 'AMAZING HUSBAND...'] });
+    boxes.push({ who: 'DR. RAVEN', lines: ['...WHO CREATED THIS INCREDIBLE', 'GIFT FOR MY BIRTHDAY.', 'BEST. BIRTHDAY. EVER.'] });
+  } else {
+    boxes.push({ who: 'DR. RAVEN', lines: ['I LOVE MY FAMILY SO MUCH.', 'BEST. BIRTHDAY. EVER.'] });
+  }
+  return boxes;
+}
 const PERFECT_WHO_COLORS = {
   'DR. RAVEN': '#c9599e', 'DONNIE': '#2e8fd0',
   'SCARLETT': '#e8862e', 'HANK': '#3fae6a', 'RAMONA': '#8a5fc9',
+  'G-DADDY & PEP': '#e8862e', 'CC & UNCLE BRYANT': '#2c4f8a', 'SARAH T.': '#c9552e',
 };
 let pfPhase = 0, pfChars = 0, pfDonnieT = 0, pfConfetti = null;
-function startPerfect() {
+let pfCast = FULL_CAST, pfBoxes = buildPerfectBoxes(FULL_CAST), pfDonnieAt = 2;
+function startPerfect(fullCast) {
+  pfCast = fullCast ? FULL_CAST : endingCast();
+  pfBoxes = buildPerfectBoxes(pfCast);
+  pfDonnieAt = pfCast.donnie ? 2 : -1; // the box where Donnie walks in
   G.state = 'perfect'; G.stateT = 0; G.shake = 0;
   pfPhase = 0; pfChars = 0; pfDonnieT = 0; pfConfetti = null;
   audio.play('happy');
   audio.tempo(1);
 }
 function pfBoxDone() {
-  return pfChars >= PERFECT_BOXES[pfPhase].lines.join('').length;
+  return pfChars >= pfBoxes[pfPhase].lines.join('').length;
 }
 function updatePerfect() {
   G.frame++;
   pfChars += 0.9;
   if (!pfBoxDone() && G.frame % 3 === 0) audio.sfx('type');
-  if (pfPhase >= 2 && pfDonnieT < 60) pfDonnieT++; // Donnie walks in with the coffee
+  if (pfDonnieAt >= 0 && pfPhase >= pfDonnieAt && pfDonnieT < 60) pfDonnieT++; // Donnie walks in
   if (pressed.Enter) {
     if (!pfBoxDone()) pfChars = 9999;
-    else if (pfPhase < PERFECT_BOXES.length - 1) {
+    else if (pfPhase < pfBoxes.length - 1) {
       pfPhase++;
       pfChars = 0;
       audio.sfx('menu');
@@ -3691,15 +3734,39 @@ function drawPerfect() {
   ctx.fillStyle = '#f0806e';
   for (let by = 110; by < 205; by += 14) ctx.fillRect(214, by, 84, 5);
   ctx.fillStyle = 'rgba(255,255,255,.20)'; ctx.fillRect(240, 102, 32, 108);
+  // degrees on the wall, for the chapters that earned them
+  if (pfCast.ba || pfCast.phd) {
+    const frame = (fx, state) => {
+      ctx.fillStyle = '#b08d58'; ctx.fillRect(fx - 2, 6, 18, 14);
+      ctx.fillStyle = '#f2e9d8'; ctx.fillRect(fx, 8, 14, 10);
+      ctx.fillStyle = state === 2 ? '#2a52c9' : '#d93636'; ctx.fillRect(fx + 6, 10, 3, 6);
+    };
+    if (pfCast.ba) frame(444, 1);
+    if (pfCast.phd) frame(468, 2);
+  }
   // the kids at their mom's bedside (kept above the dialogue box), drawn 2x
   const kid = (spr, kx, ky) => {
     ctx.save(); ctx.translate(kx, ky); ctx.scale(2, 2); ctx.drawImage(spr, 0, 0); ctx.restore();
   };
-  kid(SPR.scarlett, 160, 94);
-  kid(SPR.hank, 188, 118);
-  kid(SPR.ramona, 162, 142);
+  if (pfCast.kids) {
+    kid(SPR.scarlett, 160, 94);
+    kid(SPR.hank, 188, 118);
+    kid(SPR.ramona, 162, 142);
+  }
+  // birthday guests, for every chapter that earned its cast a spot
+  if (pfCast.parents) {
+    ctx.drawImage(SPR.gdaddy, 78, 176);
+    ctx.drawImage(SPR.pep, 102, 178);
+  }
+  if (pfCast.auburn) {
+    ctx.drawImage(SPR.cc, 424, 176);
+    ctx.drawImage(SPR.uncleb, 444, 174);
+    ctx.drawImage(SPR.butter, 420, 210);
+    ctx.drawImage(SPR.bacon, 444, 212);
+  }
+  if (pfCast.sarah) ctx.drawImage(SPR.sarah, 62, 108);
   // Donnie walks in from the door carrying her coffee
-  if (pfPhase >= 2) {
+  if (pfDonnieAt >= 0 && pfPhase >= pfDonnieAt) {
     const t = pfDonnieT / 60;
     const dx = Math.round(400 + (312 - 400) * t);
     const dy = Math.round(40 + (112 - 40) * t);
@@ -3724,7 +3791,7 @@ function drawPerfect() {
   ctx.fillRect(0, 0, VW, 22); ctx.fillRect(0, VH - 22, VW, 22);
 
   // sunny RPG dialogue boxes
-  const box = PERFECT_BOXES[pfPhase];
+  const box = pfBoxes[pfPhase];
   const bh = 26 + box.lines.length * 16;
   const by = VH - 30 - bh;
   ctx.fillStyle = 'rgba(255,252,240,.95)';
@@ -3820,28 +3887,37 @@ function drawPerfectEnd() {
   }
   ctx.fillStyle = '#7de8ff'; ctx.fillRect(430, 228, 40, 14);
   ctx.fillStyle = '#fff'; ctx.fillRect(430, 232, 40, 2); ctx.fillRect(430, 238, 40, 2);
-  // -- everyone together --
-  ctx.drawImage(SPR.gdaddy, 148, 231);
-  ctx.drawImage(SPR.pep, 170, 232);
-  ctx.drawImage(SPR.stand, 224, 218);
-  ctx.drawImage(SPR.donnie, 256, 218);
+  // -- everyone who earned their spot (3 stars on their chapter) --
+  ctx.drawImage(SPR.stand, 224, 218); // Dr. Raven, always
+  if (pfCast.parents) {
+    ctx.drawImage(SPR.gdaddy, 148, 231);
+    ctx.drawImage(SPR.pep, 170, 232);
+  }
+  if (pfCast.donnie) ctx.drawImage(SPR.donnie, 256, 218);
   // the kids at 2x so they stand kid-height next to their parents
   const kid = (spr, kx, ky) => {
     ctx.save(); ctx.translate(kx, ky); ctx.scale(2, 2); ctx.drawImage(spr, 0, 0); ctx.restore();
   };
-  kid(SPR.scarlett, 292, 224);
-  kid(SPR.hank, 314, 226);
-  kid(SPR.ramona, 336, 226);
-  ctx.drawImage(SPR.cc, 196, 233);
-  ctx.drawImage(SPR.uncleb, 360, 232);
-  ctx.drawImage(SPR.sarah, 384, 222); // Sarah T. made it to the party too
-  // Butter & Bacon zooming along the wet sand
-  ctx.drawImage(SPR.butter, Math.round(210 + Math.sin(f * 0.03) * 60), 209);
-  ctx.save();
-  ctx.translate(Math.round(260 - Math.sin(f * 0.03) * 60), 209);
-  ctx.scale(-1, 1);
-  ctx.drawImage(SPR.bacon, -16, 0);
-  ctx.restore();
+  if (pfCast.kids) {
+    kid(SPR.scarlett, 292, 224);
+    kid(SPR.hank, 314, 226);
+    kid(SPR.ramona, 336, 226);
+  }
+  if (pfCast.auburn) {
+    ctx.drawImage(SPR.cc, 196, 233);
+    ctx.drawImage(SPR.uncleb, 360, 232);
+    // Butter & Bacon zooming along the wet sand
+    ctx.drawImage(SPR.butter, Math.round(210 + Math.sin(f * 0.03) * 60), 209);
+    ctx.save();
+    ctx.translate(Math.round(260 - Math.sin(f * 0.03) * 60), 209);
+    ctx.scale(-1, 1);
+    ctx.drawImage(SPR.bacon, -16, 0);
+    ctx.restore();
+  }
+  if (pfCast.sarah) ctx.drawImage(SPR.sarah, 384, 222);
+  // the degrees sunbathe on the towel
+  if (pfCast.ba) drawDiploma(434, 218 + Math.sin(f * 0.06) * 2, 1);
+  if (pfCast.phd) drawDiploma(456, 217 + Math.sin(f * 0.06 + 2) * 2, 2);
   // the raven, swooping happily over the water
   ctx.drawImage(SPR.raven, Math.round(96 + Math.sin(f * 0.02) * 44), Math.round(96 + Math.sin(f * 0.055) * 9));
   // Jack the (good) Dog, floating with his birthday balloons
@@ -3900,7 +3976,7 @@ function updateSelect() {
       startCutscene();            // the dark "all a dream" ending
     } else if (G.tourMode && G.selIdx === LVL_META.length + 1) {
       audio.sfx('door');
-      startPerfect();             // the beach-house birthday ending
+      startPerfect(true);         // the beach-house birthday ending, full cast
     } else if (!G.tourMode && levelLocked(G.selIdx)) {
       audio.sfx('locked');
     } else {
@@ -4292,8 +4368,8 @@ audio.unlock();
 // collecting all 1,026 books first, #beach to jump to its finale, or #l1..#l8
 // to drop straight into a level
 const lvlHash = location.hash.match(/^#l([1-8])$/);
-if (location.hash === '#perfect') startPerfect();
-else if (location.hash === '#beach') { G.state = 'perfectEnd'; G.stateT = 0; audio.play('happy'); }
+if (location.hash === '#perfect') startPerfect(true);
+else if (location.hash === '#beach') { pfCast = FULL_CAST; G.state = 'perfectEnd'; G.stateT = 0; audio.play('happy'); }
 else if (lvlHash) {
   applySave(loadSave());
   startLevel(+lvlHash[1] - 1, true, true); // preview bypasses level locks
