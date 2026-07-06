@@ -369,6 +369,44 @@ const RAMONA_SPR = [ // 7, blue eyes, long hair
   '...S..S...',
   '...F..F...',
 ];
+// Dr. Raven's parents (level 1 kennel rescue)
+const GDADDY_SPR = [ // large build, glasses, parted flowy dark brown hair, orange & blue
+  '..hhhhhhhhhh..',
+  '.hhhhhhhhhhhh.',
+  '.hhSSSSSSShhh.',
+  '.hGeGSSGeGhh..',
+  '.hhSSSSSSSSh..',
+  '..hSSmmmmSSh..',
+  '...SSSSSSSS...',
+  '..OOOOOOOOOO..',
+  '.OOOOOOOOOOOO.',
+  '.OOOOOOOOOOOO.',
+  '.OOOOOOOOOOOO.',
+  '.SOOOOOOOOOOS.',
+  '..JJJJJJJJJJ..',
+  '..JJJJ..JJJJ..',
+  '..JJJJ..JJJJ..',
+  '..JJJJ..JJJJ..',
+  '..FFFF..FFFF..',
+];
+const PEP_SPR = [ // dark brown hair to her shoulders, blue dress, a little shorter
+  '..hhhhhhhh..',
+  '.hhhhhhhhhh.',
+  '.hhSSSSSShh.',
+  '.hhSeSSeShh.',
+  '.hhSSSSSShh.',
+  '.hhSmmmmShh.',
+  '.hhhSSSShhh.',
+  '.hhBBBBBBhh.',
+  '..hBBBBBBh..',
+  '..SBBBBBBS..',
+  '..BBBBBBBB..',
+  '.BBBBBBBBBB.',
+  '.BBBBBBBBBB.',
+  'BBBBBBBBBBBB',
+  '...S....S...',
+  '...F....F...',
+];
 // Donnie — the world's greatest husband, in his wedding suit
 const DONNIE_SPR = [
   '.......kkkkkkkkk........',
@@ -496,9 +534,18 @@ const SPR = {
     k: '#3a2a1e', K: '#54402e', e: '#6a8ab5',
     J: '#26262e', w: '#f4f4f8', T: '#c33b2f',
   }),
+  gdaddy: makeSprite(GDADDY_SPR, {
+    h: '#4a3626', e: '#7de8ff', m: '#c46a6a',
+    O: '#e8862e', J: '#2c4f8a', F: '#26262b',
+  }),
+  pep: makeSprite(PEP_SPR, {
+    h: '#4a3626', e: '#5a3a26', m: '#c46a6a',
+    B: '#3f6fb5', F: '#26262b',
+  }),
 };
 SPR.jackHurt = tinted(SPR.jack, '#ff4040', .5);
 SPR.kids = [SPR.scarlett, SPR.hank, SPR.ramona];
+SPR.parents = [SPR.gdaddy, SPR.pep];
 SPR.superFrames = ['#ff5abf', '#5adfff', '#ffe45a'].map(col =>
   [SPR.stand, SPR.run1, SPR.run2, SPR.jump].map(s => tinted(s, col, .3)));
 
@@ -525,6 +572,32 @@ function bookSprite(colIdx, gold) {
   }
   bookCache[key] = c;
   return c;
+}
+
+// real covers from Dr. Raven's reading list — the floating bg books on the title
+// and ending screens show actual books she's read (generic sprite until loaded)
+const floatCovers = [];
+{
+  const pool = [];
+  for (let i = 0; i < BOOKS.length; i++) if (BOOKS[i].img) pool.push(i);
+  for (let n = 0; n < 20 && pool.length; n++) {
+    const bi = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
+    const entry = { c: null };
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = 20; c.height = 30;
+      const g = c.getContext('2d');
+      g.drawImage(img, 0, 0, 20, 30);
+      g.fillStyle = '#f2e9d8'; g.fillRect(18, 1, 2, 28); // page edge
+      entry.c = c;
+    };
+    img.src = BOOKS[bi].img;
+    floatCovers.push(entry);
+  }
+}
+function floatBook(i, gold) {
+  return (floatCovers[i % floatCovers.length] || {}).c || bookSprite(i % BOOK_COLORS.length, gold);
 }
 // real book covers, crunched down to 12x16 pixels (falls back to the
 // procedural sprite while loading / offline)
@@ -1013,8 +1086,11 @@ function genLevel(idx) {
   };
 
   // level 7: the kids locked in Jack's cage by the door
+  // level 1 (Loxley): G-Daddy & Pep — Dr. Raven's parents — in a kennel at the end
   const cage = idx === 6
     ? { x: widthPx - 160, y: 256 - 32, w: 46, h: 32, open: false }
+    : idx === 0
+    ? { x: widthPx - 160, y: 256 - 32, w: 46, h: 32, open: false, parents: true }
     : null;
 
   // level 4 (the wedding): Donnie appears once Jack is beaten
@@ -1792,12 +1868,17 @@ function updatePlay() {
     if (dn.sayT > 0) dn.sayT--;
   }
 
-  // freeing the kids
+  // freeing the caged family (kids on L7, Dr. Raven's parents on L1)
   if (L.cage && !L.cage.open && bz.st === 'dead') {
     L.cage.open = true;
     audio.sfx('clear');
-    addPopup('MOM!!!', L.cage.x + 23, L.cage.y - 14, '#5aff8f');
-    addPopup('THE KIDS ARE FREE!', L.cage.x + 23, L.cage.y - 26, '#ffe45a');
+    if (L.cage.parents) {
+      addPopup('THANK YOU, DR. RAVEN.', L.cage.x + 23, L.cage.y - 26, '#5aff8f');
+      addPopup('YOU ARE OUR FAVORITE.', L.cage.x + 23, L.cage.y - 14, '#ffe45a');
+    } else {
+      addPopup('MOM!!!', L.cage.x + 23, L.cage.y - 14, '#5aff8f');
+      addPopup('THE KIDS ARE FREE!', L.cage.x + 23, L.cage.y - 26, '#ffe45a');
+    }
     spawnBurst(L.cage.x + 23, L.cage.y + 10, '#ffe45a', 18, 2.5);
   }
 
@@ -2046,16 +2127,18 @@ function drawWorld() {
     ctx.restore();
   }
 
-  // the kids' cage (level 8)
+  // the caged family (kids on level 8, G-Daddy & Pep's kennel on level 1)
   if (L.cage) {
     const cg = L.cage;
     ctx.fillStyle = 'rgba(10,6,18,.55)';
     ctx.fillRect(cg.x, cg.y, cg.w, cg.h);
-    // the kids (hop happily once freed)
-    for (let i = 0; i < 3; i++) {
-      const k = SPR.kids[i];
+    // the captives (hop happily once freed)
+    const roster = cg.parents ? SPR.parents : SPR.kids;
+    const step = cg.parents ? 20 : 14;
+    for (let i = 0; i < roster.length; i++) {
+      const k = roster[i];
       const hop = cg.open ? Math.abs(Math.sin(G.frame * 0.12 + i * 1.3)) * 5 : 0;
-      const kx = cg.open ? cg.x + cg.w + 6 + i * 14 : cg.x + 3 + i * 14;
+      const kx = cg.open ? cg.x + cg.w + 6 + i * step : cg.x + 3 + i * step;
       ctx.drawImage(k, Math.floor(kx), Math.floor(cg.y + cg.h - k.height - hop));
     }
     if (!cg.open) { // iron bars + lock
@@ -2067,7 +2150,12 @@ function drawWorld() {
       ctx.fillRect(cg.x + cg.w / 2 - 3, cg.y + cg.h / 2 - 2, 6, 5);
       if ((G.frame >> 4) % 2 === 0) drawTextC('HELP!', cg.x + cg.w / 2, cg.y - 14, 1, '#ffe45a', '#000');
     } else if ((G.frame >> 4) % 3 !== 2) {
-      drawTextC('THANKS MOM!', cg.x + cg.w + 26, cg.y - 10, 1, '#5aff8f', '#000');
+      if (cg.parents) {
+        drawTextC('THANK YOU, DR. RAVEN.', cg.x + cg.w + 26, cg.y - 20, 1, '#5aff8f', '#000');
+        drawTextC('YOU ARE OUR FAVORITE.', cg.x + cg.w + 26, cg.y - 10, 1, '#ffe45a', '#000');
+      } else {
+        drawTextC('THANKS MOM!', cg.x + cg.w + 26, cg.y - 10, 1, '#5aff8f', '#000');
+      }
     }
   }
 
@@ -3042,7 +3130,7 @@ function drawTitle() {
     const x = (i * 137 + G.frame * (0.2 + (i % 3) * 0.12)) % (VW + 40) - 20;
     const y = 30 + (i * 67) % 220 + Math.sin(G.frame * 0.03 + i) * 8;
     ctx.globalAlpha = 0.55;
-    ctx.drawImage(bookSprite(i % BOOK_COLORS.length, i % 7 === 3), Math.floor(x), Math.floor(y));
+    ctx.drawImage(floatBook(i, i % 7 === 3), Math.floor(x), Math.floor(y));
     ctx.globalAlpha = 1;
   }
   // logo — kerned tight so 'DR.' and 'RAVEN' don't gap apart
@@ -3110,7 +3198,8 @@ function drawIntro() {
   drawText(n + ' BOOKS ON THE LOOSE', VW / 2 - 44, 152, 1, '#fff');
   if (nl > 0) drawTextC('*' + nl + " L'ENGLE POWER BOOK" + (nl > 1 ? 'S' : '') + ' HIDDEN HERE *', VW / 2, 170, 1, '#ffd23e');
   drawTextC('120 SECONDS. REACH THE DOOR. GRAB EVERYTHING.', VW / 2, 192, 1, '#c9b8ec');
-  const warn = G.level === 6 ? 'JACK HAS SCARLETT, HANK & RAMONA IN A CAGE! SET THEM FREE!'
+  const warn = G.level === 0 ? 'JACK HAS G-DADDY & PEP IN A KENNEL! SET THEM FREE!'
+    : G.level === 6 ? 'JACK HAS SCARLETT, HANK & RAMONA IN A CAGE! SET THEM FREE!'
     : G.level === 7 ? 'GIANT JACK IS TWICE AS TALL AND HUNGRY FOR BOOKS!'
     : 'JACK THE DOG GUARDS THE EXIT' + (G.level > 0 ? ' - FASTER THAN BEFORE!' : '!');
   drawTextC(warn, VW / 2, 206, 1, '#ff5a5a');
@@ -3188,7 +3277,7 @@ function drawEnding() {
     const x = (i * 97 + G.frame * 0.4) % VW;
     const y = (i * 53 + G.frame * (0.3 + i % 3 * 0.1)) % VH;
     ctx.globalAlpha = 0.5;
-    ctx.drawImage(bookSprite(i % BOOK_COLORS.length, i % 6 === 2), x, y);
+    ctx.drawImage(floatBook(i, i % 6 === 2), x, y);
     ctx.globalAlpha = 1;
   }
   const got = G.collected.size;
