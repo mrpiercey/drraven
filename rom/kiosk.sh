@@ -49,11 +49,24 @@ fi
 
 # --- the game -------------------------------------------------------------
 CHROMIUM="$(command -v chromium-browser || command -v chromium)"
+# Figure out the monitor's actual resolution so we can force Chromium to fill
+# it. Without a window manager, kiosk mode sometimes opens a small window and
+# the game ends up in a box with black around it.
+SCREEN_RES="$(xrandr 2>>"$LOG" | awk '/\*/{print $1; exit}')"
+WIN_ARGS=""
+if [ -n "$SCREEN_RES" ]; then
+  SW="${SCREEN_RES%x*}"
+  SH="${SCREEN_RES#*x}"
+  WIN_ARGS="--window-position=0,0 --window-size=$SW,$SH"
+fi
+log "screen resolution: ${SCREEN_RES:-unknown}  win_args: ${WIN_ARGS:-none}"
 log "launching Chromium: $CHROMIUM"
 
 "$CHROMIUM" \
   --kiosk "file://$GAMEDIR/index.html" \
   --start-fullscreen \
+  $WIN_ARGS \
+  --force-device-scale-factor=1 \
   --autoplay-policy=no-user-gesture-required \
   --user-data-dir="$HOME/.config/drraven-kiosk" \
   --no-sandbox \
