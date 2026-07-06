@@ -709,7 +709,7 @@ const P = {   // player
   safeX: 60, safeY: 200,
 };
 let cam = 0;
-let particles = [], popups = [], projs = [];
+let particles = [], popups = [], projs = [], lostBookFx = [];
 let shotsUsed = 0, throwCool = 0;
 function ammoLeft() { return Math.max(0, G.runSet.size - shotsUsed); }
 
@@ -1125,7 +1125,7 @@ function startLevel(idx, freshHearts) {
   P.safeX = 60; P.safeY = 180;
   P.iframes = 0; P.facing = 1; P.grounded = false;
   cam = 0;
-  particles = []; popups = []; projs = [];
+  particles = []; popups = []; projs = []; lostBookFx = [];
   shotsUsed = 0; throwCool = 0;
   for (const b of L.books) loadCover(b.i); // fetch real covers in background
   G.state = 'intro';
@@ -1158,18 +1158,65 @@ function groundTopAt(col) {
   const r = L.ground[col];
   return r == null ? null : r * TILE;
 }
+const READING_BREAK_MESSAGES = [
+  'THE INK BLOTS GOT THE BETTER OF HER.',
+  'SHE PAUSED TO FIND HER PLACE.',
+  'EVEN SUPER READERS NEED A QUIET MINUTE.',
+  'HER BOOKMARK CALLED FOR A SHORT BREAK.',
+  'THE NEXT CHAPTER CAN WAIT JUST A MOMENT.',
+  'SHE STOPPED FOR TEA AND A FRESH START.',
+  'TOO MANY PLOT TWISTS AT ONCE.',
+  'THE LIBRARY LIGHTS FLICKERED.',
+  'SHE TOOK A MOMENT TO REFOCUS.',
+  'THIS CHAPTER NEEDS A QUICK REREAD.',
+  'JACK HID THE NEXT PAGE.',
+];
+let readingBreakMessage = -1;
+function beginReadingBreak() {
+  let next = Math.floor(Math.random() * READING_BREAK_MESSAGES.length);
+  if (next === readingBreakMessage) next = (next + 1) % READING_BREAK_MESSAGES.length;
+  readingBreakMessage = next;
+  G.state = 'dead'; G.stateT = 0;
+  audio.stop(); audio.sfx('gameover');
+}
+function loseRunBooks(count) {
+  const lost = [];
+  for (let oi = G.order.length - 1; oi >= 0 && lost.length < count; oi--) {
+    const id = G.order[oi];
+    if (!G.runSet.has(id)) continue;
+    G.runSet.delete(id);
+    G.order.splice(oi, 1);
+    const book = L.books.find(b => b.i === id);
+    lost.push({ id, book });
+  }
+  for (let i = 0; i < lost.length; i++) {
+    const { id, book } = lost[i];
+    lostBookFx.push({
+      x: P.x + P.w / 2, y: P.y + 7,
+      vx: (i - (lost.length - 1) / 2) * 1.8 + (Math.random() - 0.5) * 0.5,
+      vy: -3.4 - Math.random() * 0.8,
+      rot: (Math.random() - 0.5) * 0.8,
+      vr: (i % 2 ? 1 : -1) * (0.16 + Math.random() * 0.08),
+      life: 90,
+      cv: coverOf(id),
+      colIdx: book ? book.colIdx : id % BOOK_COLORS.length,
+      gold: book ? book.gold : BOOKS[id].le,
+    });
+  }
+  return lost.length;
+}
 function hurt(px) {
   if (P.iframes > 0 || G.superT > 0) return;
   G.hearts--;
+  const lost = loseRunBooks(3);
+  if (lost) addPopup(lost + (lost === 1 ? ' BOOK FALLS AWAY!' : ' BOOKS FALL AWAY!'), P.x + P.w / 2, P.y - 14, '#7de8ff');
   P.iframes = 100;
   P.vx = (P.x + P.w / 2 < px ? -3 : 3);
   P.vy = -4.2;
   G.shake = 12;
   audio.sfx('hurt');
-  spawnBurst(P.x + P.w / 2, P.y + P.h / 2, '#ff5a5a', 10);
   if (G.hearts <= 0) {
-    G.state = 'dead'; G.stateT = 0;
-    audio.stop(); audio.sfx('gameover');
+    beginReadingBreak();
   }
 }
 function bossHit() {
@@ -1203,15 +1250,16 @@ function bossHit() {
 }
 function pitFall() {
   G.hearts--;
+  const lost = loseRunBooks(3);
   audio.sfx('hurt');
   G.shake = 12;
   if (G.hearts <= 0) {
-    G.state = 'dead'; G.stateT = 0;
-    audio.stop(); audio.sfx('gameover');
+    beginReadingBreak();
     return;
   }
   P.x = P.safeX; P.y = P.safeY - 4; P.vx = 0; P.vy = 0;
   P.iframes = 110;
+  if (lost) addPopup(lost + (lost === 1 ? ' BOOK FELL AWAY!' : ' BOOKS FELL AWAY!'), P.x + P.w / 2, P.y - 14, '#7de8ff');
 }
 function spawnBurst(x, y, color, n, spd) {
   for (let i = 0; i < n; i++) {
@@ -1566,6 +1614,10 @@ function updateFx() {
   particles = particles.filter(p => p.life > 0);
   for (const p of popups) { p.y -= 0.35; p.life--; }
   popups = popups.filter(p => p.life > 0);
+  for (const b of lostBookFx) {
+    b.x += b.vx; b.y += b.vy; b.vy += 0.18; b.rot += b.vr; b.life--;
+  }
+  lostBookFx = lostBookFx.filter(b => b.life > 0 && b.y < VH + 60);
 }
 function trunc(s, n) { return s.length > n ? s.slice(0, n - 1) + '.' : s; }
 
@@ -1781,6 +1833,17 @@ function drawWorld() {
 
   // player
   drawPlayer();
+
+  // Lost books tumble away as a visual effect; they cannot be collected again.
+  for (const b of lostBookFx) {
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, b.life / 18);
+    ctx.translate(Math.floor(b.x), Math.floor(b.y));
+    ctx.rotate(b.rot);
+    if (b.cv) ctx.drawImage(b.cv, -6, -8);
+    else ctx.drawImage(bookSprite(b.colIdx, b.gold), -6, -7);
+    ctx.restore();
+  }
 
   // Dr. Raven's speech bubble to Donnie
   if (L.donnie && L.donnie.sayT > 0) {
@@ -2253,9 +2316,19 @@ const CUT_BOXES = [
   { who: 'JACK THE DOG', lines: ['SAME TIME TOMORROW,', 'DR. RAVEN?'], evil: true },
 ];
 let cutPhase = 0, cutChars = 0, cutPanT = 0, cutBooks = null;
+let cutFlashA = 0, cutLastThunder = 0;
+function triggerCutLightning(intensity = 0.75) {
+  cutFlashA = intensity;
+  cutLastThunder = G.stateT;
+  audio.sfx('thunder');
+  G.shake = Math.max(G.shake, 10);
+}
 function startCutscene() {
   G.state = 'cutscene'; G.stateT = 0; G.shake = 0;
   cutPhase = 0; cutChars = 0; cutPanT = 0;
+  cutFlashA = 0; cutLastThunder = 0;
+  audio.play('story');
+  audio.tempo(1);
   ensureCutBooks();
   for (const b of cutBooks) loadCover(b.i); // real covers for the bedroom floor
 }
@@ -2266,14 +2339,21 @@ function cutBoxDone() {
 function updateCutscene() {
   G.frame++;
   if (G.shake > 0) G.shake--;
-  if (G.stateT === 2) audio.play('title');
+  // Echo the opening storm: one early flash, then more while the player reads.
+  if (G.stateT === 45 || (G.stateT - cutLastThunder > 150 && Math.random() < 0.012)) {
+    triggerCutLightning();
+  }
+  cutFlashA *= 0.92;
   if (cutPhase === 0 || cutPhase === 1 || cutPhase === 3) {
     cutChars += 0.9;
     if (!cutBoxDone() && G.frame % 3 === 0) audio.sfx('type');
   }
   if (cutPhase === 2) { // the pan down to the foot of the bed
     cutPanT++;
-    if (cutPanT === 55) { audio.sfx('bark'); G.shake = 10; }
+    if (cutPanT === 55) {
+      triggerCutLightning(0.92);
+      audio.sfx('bark');
+    }
     if (cutPanT >= 90) { cutPhase = 3; cutChars = 0; }
   }
   if (pressed.Enter) {
@@ -2283,7 +2363,6 @@ function updateCutscene() {
         cutPhase++;
         cutChars = 0;
         audio.sfx('menu');
-        if (cutPhase === 2) audio.stop();
       }
     } else if (cutPhase === 2) {
       cutPanT = Math.max(cutPanT, 89);
@@ -2435,6 +2514,11 @@ function drawCutscene() {
   // red dread vignette after the reveal
   if (cutPhase >= 3) {
     ctx.fillStyle = 'rgba(180,20,20,' + (0.10 + Math.sin(G.frame * 0.1) * 0.04).toFixed(2) + ')';
+    ctx.fillRect(0, 0, VW, VH);
+  }
+  // Keep the dialogue readable by flashing the room before drawing the UI.
+  if (cutFlashA > 0.02) {
+    ctx.fillStyle = 'rgba(220,225,255,' + cutFlashA.toFixed(2) + ')';
     ctx.fillRect(0, 0, VW, VH);
   }
   // cinematic letterbox
@@ -2711,7 +2795,8 @@ function drawDead() {
   drawWorld(); drawOverlayBox();
   drawTextC('DR. RAVEN NEEDS A', VW / 2, 80, 3, '#ff5a5a');
   drawTextC('READING BREAK...', VW / 2, 106, 3, '#ff5a5a');
-  drawTextC('THE INK BLOTS GOT THE BETTER OF HER.', VW / 2, 140, 1, '#c9b8ec');
+  const msg = READING_BREAK_MESSAGES[Math.max(0, readingBreakMessage)];
+  drawTextC(msg, VW / 2, 140, 1, '#c9b8ec');
   if (G.stateT > 40 && (G.frame >> 4) % 2 === 0) drawTextC('PRESS ENTER TO TRY AGAIN', VW / 2, 180, 1, '#fff');
 }
 

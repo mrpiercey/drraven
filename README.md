@@ -65,7 +65,8 @@ The story plays in pages — ENTER turns to the next part.
   door. Defeat him to set them free.
 - **Level 8**: giant Jack is twice as tall, has 8 hearts, and vacuums up
   floating books — every hit you land knocks them back out of his belly.
-- 3 hearts. Pits, enemies, and Jack the Dog cost one. Progress saves after
+- 3 hearts. Pits, enemies, and Jack the Dog cost one heart and make up to
+  three collected books tumble away for that attempt. Progress saves after
   each level — the title screen offers CONTINUE.
 
 ## Files
