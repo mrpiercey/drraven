@@ -4101,30 +4101,30 @@ function drawTitle() {
   drawTextC('(C) 2026 RAVENSOFT - 16-BIT THERAPY DIVISION', VW / 2, 276, 1, '#6b5a8c');
 }
 
+// what must happen at the end of each chapter
+const OBJECTIVES = [
+  'FIND G-DADDY AND PEP!',
+  'UNLOCK THE BACHELORS DEGREE!',
+  'RESCUE CC, UNCLE B, BUTTER & BACON!',
+  'MARRY DONNIE!',
+  'CRACK THE SAFE FOR THE PH.D.!',
+  'SAVE SARAH!',
+  'RESCUE SCARLETT, HANK, AND RAMONA!',
+  'DEFEAT GIANT JACK!',
+];
 function drawIntro() {
   ctx.fillStyle = '#0a0612'; ctx.fillRect(0, 0, VW, VH);
   const meta = LVL_META[G.level];
   const n = LEVEL_BOOKS[G.level].length;
-  const nl = LEVEL_BOOKS[G.level].filter(i => BOOKS[i].le).length;
-  drawTextC('LEVEL ' + (G.level + 1), VW / 2, 70, 3, '#9a86c4');
-  drawTextC(meta.name, VW / 2, 100, 3, '#ffd23e', '#3a2410');
-  drawTextC(meta.sub, VW / 2, 128, 1, '#c9b8ec');
-  ctx.drawImage(bookSprite(2, false), VW / 2 - 62, 148);
-  drawText(n + ' BOOKS ON THE LOOSE', VW / 2 - 44, 152, 1, '#fff');
-  if (nl > 0) drawTextC('*' + nl + " L'ENGLE POWER BOOK" + (nl > 1 ? 'S' : '') + ' HIDDEN HERE *', VW / 2, 170, 1, '#ffd23e');
-  drawTextC('120 SECONDS. REACH THE DOOR. GRAB EVERYTHING.', VW / 2, 192, 1, '#c9b8ec');
-  const warn = G.level === 0 ? 'JACK HAS G-DADDY & PEP IN A KENNEL! SET THEM FREE!'
-    : G.level === 1 ? 'JACK LOCKED UP HER BACHELORS DEGREE! UNLOCK IT & GRADUATE!'
-    : G.level === 2 ? 'JACK CAGED CC, UNCLE B, BUTTER & BACON! SET THEM FREE!'
-    : G.level === 4 ? 'JACK STUFFED HER PH.D. IN A SAFE! CRACK IT OPEN!'
-    : G.level === 5 ? 'JACK LOCKED SARAH T. BEHIND A DOOR! LET HER OUT!'
-    : G.level === 6 ? 'JACK HAS SCARLETT, HANK & RAMONA IN A CAGE! SET THEM FREE!'
-    : G.level === 7 ? 'GIANT JACK IS TWICE AS TALL AND HUNGRY FOR BOOKS!'
-    : 'JACK THE DOG GUARDS THE EXIT' + (G.level > 0 ? ' - FASTER THAN BEFORE!' : '!');
-  const extra = G.level === 5 ? 'MED STUDENT QUESTIONS COST 10 MINUTES! TOSS THEM A BOOK!' : null;
-  drawTextC(warn, VW / 2, 206, 1, '#ff5a5a');
-  if (extra) drawTextC(extra, VW / 2, 216, 1, '#7de8ff');
-  if (G.stateT > 30 && (G.frame >> 4) % 2 === 0) drawTextC('PRESS ENTER', VW / 2, extra ? 230 : 220, 2, '#fff');
+  drawTextC('LEVEL ' + (G.level + 1), VW / 2, 72, 2, '#9a86c4');
+  drawTextC(meta.name, VW / 2, 94, 3, '#ffd23e', '#3a2410');
+  // book count, with a little book beside it
+  const bt = n + ' BOOKS';
+  const bw = textW(bt, 2);
+  ctx.drawImage(bookSprite(2, false), VW / 2 - bw / 2 - 20, 134);
+  drawText(bt, VW / 2 - bw / 2 + 2, 138, 2, '#fff');
+  drawTextC(OBJECTIVES[G.level], VW / 2, 176, 2, '#5aff8f', '#0a2a14');
+  if (G.stateT > 30 && (G.frame >> 4) % 2 === 0) drawTextC('PRESS ENTER', VW / 2, 216, 2, '#fff');
 }
 
 function drawOverlayBox() {
