@@ -36,10 +36,14 @@ const pressed = {}; // edge-triggered, cleared each frame
 // ↑ ↑ ↓ ↓ ← → ← → B A ENTER — opens the level select
 const KONAMI = ['arrowup','arrowup','arrowdown','arrowdown','arrowleft','arrowright','arrowleft','arrowright','b','a','enter'];
 let konamiIdx = 0;
+// WASD aliases the arrow keys; Konami matching below uses the raw key so 'a' still counts as A
+const WASD = { w: 'ArrowUp', a: 'ArrowLeft', s: 'ArrowDown', d: 'ArrowRight' };
+const mapKey = key => WASD[key.toLowerCase()] || key;
 addEventListener('keydown', e => {
   if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' ','Tab','Enter'].includes(e.key)) e.preventDefault();
-  if (!keys[e.key]) pressed[e.key] = true;
-  keys[e.key] = true;
+  const key = mapKey(e.key);
+  if (!keys[key]) pressed[key] = true;
+  keys[key] = true;
   if (e.key === 'm' || e.key === 'M') audio.toggleMute();
   const k = e.key.toLowerCase();
   if (k === KONAMI[konamiIdx]) {
@@ -48,7 +52,7 @@ addEventListener('keydown', e => {
   audio.unlock();
 });
 addEventListener('keyup', e => {
-  keys[e.key] = false;
+  keys[mapKey(e.key)] = false;
   // macOS swallows keyups while Cmd is held — clear movement keys on Cmd release
   if (e.key === 'Meta') for (const k of ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' ']) keys[k] = false;
 });
@@ -3077,7 +3081,7 @@ function drawTitle() {
   drawTextC('COLLECT ALL 1,026 BOOKS OR LOSE THEM FOREVER!', VW / 2, 200, 1, '#c9b8ec');
   drawTextC("MADELEINE L'ENGLE BOOKS GRANT SUPER READER POWER!", VW / 2, 210, 1, '#ffd23e');
 
-  drawTextC('ARROWS: MOVE  SPACE: JUMP  ENTER: THROW & DOORS  TAB: BOOKS', VW / 2, 234, 1, '#8a76b4');
+  drawTextC('ARROWS/WASD: MOVE  SPACE: JUMP  ENTER: THROW & DOORS  TAB: BOOKS', VW / 2, 234, 1, '#8a76b4');
   if ((G.frame >> 5) % 2 === 0) drawTextC('PRESS ENTER', VW / 2, 254, 2, '#fff', '#000');
   drawTextC('(C) 2026 RAVENSOFT - 16-BIT THERAPY DIVISION', VW / 2, 276, 1, '#6b5a8c');
 }
