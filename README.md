@@ -64,9 +64,13 @@ The story plays in pages — ENTER turns to the next part.
 - Books are **real pixelated covers** (from the CSV's image URLs) floating
   through each level — touch them to collect. Offline they fall back to
   pixel-art book sprites.
+- Coffee cups with cream and sugar appear occasionally. Collecting one
+  restores one heart, up to the three-heart maximum.
+- Dr. Raven can always double-jump. During **SUPER READER** mode, she can
+  triple-jump.
 - The 16 **Madeleine L'Engle** books glow in gold frames. Grabbing one
-  triggers **SUPER READER** mode: faster, invincible, double jump, and
-  enemies go POOF on contact.
+  triggers **SUPER READER** mode with a lightning strike: faster,
+  invincible, triple jump, and enemies go POOF on contact.
 - Enemies: **Ink Blots** (Rorschach tests with a grudge), **Overdue
   Notices** (they swoop), and **Doomscrollers** (hypnotic phones).
 - **Jack the Dog guards every exit door.** Stomp his head or throw collected

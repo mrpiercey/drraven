@@ -261,6 +261,23 @@ const E_PHONE = [
   'GGGGGGGGGG',
   '.GGGGGGGG.',
 ];
+// Coffee with cream, steam, a handle, saucer, and two sugar cubes.
+const COFFEE_SPR = [
+  '.....w....w.......',
+  '......w..w........',
+  '...NNNNNNNN.......',
+  '..NppppppppN......',
+  '..NpBpBpBppN.NNN..',
+  '..NppppppppNN...N.',
+  '..NppppppppNN...N.',
+  '..NppppppppNNNNNN.',
+  '..NppppppppN......',
+  '...NppppppN.......',
+  '....NNNNNN........',
+  '...gggggggg.......',
+  '............WW....',
+  '...........WW.WW..',
+];
 // Dr. Jack — black & white sheepadoodle mad scientist (goggles up, beaker in paw)
 const JACK_SPR = [
   '.....WWGGWWWWGGWW.......',
@@ -440,6 +457,9 @@ const SPR = {
   blot: makeSprite(E_BLOT),
   env: makeSprite(E_ENVELOPE),
   phone: makeSprite(E_PHONE),
+  coffee: makeSprite(COFFEE_SPR, {
+    w: '#d9e8f0', N: '#f8f1dd', p: '#c99b6b', B: '#6b3e22', g: '#a88f78', W: '#ffffff',
+  }),
   // door gets a wood-brown palette so it stands out from purple brick levels
   door: makeSprite(DOOR_SPR, { d: '#3a2410', T: '#96682e', W: '#ffe45a', G: '#3a2410' }),
   jack: makeSprite(JACK_SPR, {
@@ -609,6 +629,9 @@ const audio = (() => {
       switch (name) {
         case 'jump': osc('square', 220, t, .12, .06, 520); break;
         case 'collect': osc('square', 880, t, .06, .05); osc('square', 1320, t + .06, .09, .05); break;
+        case 'coffee':
+          [523,659,784].forEach((fr, i) => osc('triangle', fr, t + i * .08, .2, .07));
+          break;
         case 'lengle':
           [523,659,784,1047,1319,1568].forEach((fr, i) => osc('square', fr, t + i * .07, .12, .06));
           noise(t, .5, .02, true); break;
@@ -790,6 +813,10 @@ const G = {
   hearts: 3,
   time: LEVEL_TIME,
   superT: 0,
+  powerBannerT: 0,
+  powerFlashA: 0,
+  powerLightningT: 0,
+  powerStrikeX: 0,
   frame: 0,
   menuSel: 0,
   invScroll: 0,
@@ -812,7 +839,7 @@ let L = null; // current level data
 const P = {   // player
   x: 60, y: 200, vx: 0, vy: 0, w: 14, h: 30,
   facing: 1, grounded: false, coyote: 0, jumpHeld: false,
-  canDouble: false, iframes: 0, animT: 0,
+  jumpCount: 0, iframes: 0, animT: 0,
   safeX: 60, safeY: 200,
 };
 let cam = 0;
@@ -898,6 +925,29 @@ function genLevel(idx) {
     books.push({ i: bi, x: bx, y: Math.max(40, s - 70 - rnd() * 20), phase: rnd() * 6.28, got: false, gold: true, colIdx: 0 });
   });
 
+  // One or two occasional coffee breaks per chapter, always on solid ground.
+  const coffees = [];
+  const coffeeCount = 1 + (rnd() < 0.4 ? 1 : 0);
+  for (let k = 0; k < coffeeCount; k++) {
+    const ratio = (k + 1) / (coffeeCount + 1);
+    const desired = Math.floor((startX + (endX - startX) * ratio + (rnd() - 0.5) * 180) / TILE);
+    let col = -1;
+    for (let offset = 0; offset < 36 && col < 0; offset++) {
+      const right = Math.min(cols - 18, desired + offset);
+      const left = Math.max(12, desired - offset);
+      if (ground[right] != null) col = right;
+      else if (ground[left] != null) col = left;
+    }
+    if (col >= 0) {
+      coffees.push({
+        x: col * TILE + 8,
+        y: ground[col] * TILE - SPR.coffee.height - 2,
+        phase: rnd() * 6.28,
+        got: false,
+      });
+    }
+  }
+
   // enemies
   const enemies = [];
   const eCount = Math.round(5 + idx * 1.7 + n / 45);
@@ -949,7 +999,7 @@ function genLevel(idx) {
   }
 
   return {
-    idx, pal, cols, widthPx, ground, plats, books, enemies, boss, cage, donnie, props,
+    idx, pal, cols, widthPx, ground, plats, books, coffees, enemies, boss, cage, donnie, props,
     doorX: widthPx - 70, doorY: 256 - 34,
     bg: makeBgLayers(pal, idx),
   };
@@ -1231,11 +1281,12 @@ function startLevel(idx, freshHearts) {
   G.order = G.order.filter(i => G.collected.has(i)); // drop books from failed runs
   G.time = LEVEL_TIME;
   G.superT = 0;
+  G.powerBannerT = 0; G.powerFlashA = 0; G.powerLightningT = 0;
   if (freshHearts) G.hearts = 3;
   L = genLevel(idx);
   P.x = 60; P.y = 180; P.vx = 0; P.vy = 0;
   P.safeX = 60; P.safeY = 180;
-  P.iframes = 0; P.facing = 1; P.grounded = false;
+  P.iframes = 0; P.facing = 1; P.grounded = false; P.jumpCount = 0;
   cam = 0;
   particles = []; popups = []; projs = []; lostBookFx = [];
   shotsUsed = 0; throwCool = 0;
@@ -1371,7 +1422,7 @@ function pitFall() {
     return;
   }
   P.x = P.safeX; P.y = P.safeY - 4; P.vx = 0; P.vy = 0;
-  P.iframes = 110;
+  P.iframes = 110; P.jumpCount = 0;
   if (lost) addPopup(lost + (lost === 1 ? ' BOOK FELL AWAY!' : ' BOOKS FELL AWAY!'), P.x + P.w / 2, P.y - 14, '#7de8ff');
 }
 function spawnBurst(x, y, color, n, spd) {
@@ -1389,6 +1440,9 @@ function updatePlay() {
   G.frame++;
   const superOn = G.superT > 0;
   if (superOn) G.superT--;
+  if (G.powerBannerT > 0) G.powerBannerT--;
+  if (G.powerLightningT > 0) G.powerLightningT--;
+  G.powerFlashA *= 0.88;
   if (P.iframes > 0) P.iframes--;
 
   // timer
@@ -1417,12 +1471,13 @@ function updatePlay() {
   if (jumpPressed) {
     if (P.grounded || P.coyote > 0) {
       P.vy = JUMPV; P.grounded = false; P.coyote = 0;
-      P.canDouble = superOn;
+      P.jumpCount = 1;
       audio.sfx('jump');
-    } else if (superOn && P.canDouble) {
-      P.vy = JUMPV * 0.92; P.canDouble = false;
+    } else if (P.jumpCount < (superOn ? 3 : 2)) {
+      P.vy = JUMPV * 0.92;
+      P.jumpCount++;
       audio.sfx('jump');
-      spawnBurst(P.x + P.w / 2, P.y + P.h, '#ffe45a', 6, 1.5);
+      spawnBurst(P.x + P.w / 2, P.y + P.h, superOn ? '#ffe45a' : '#7de8ff', 6, 1.5);
     }
   }
   if (!jumpKey && P.vy < -2.5) P.vy = -2.5; // variable jump height
@@ -1469,7 +1524,7 @@ function updatePlay() {
   }
   if (P.grounded) {
     P.coyote = 7;
-    P.canDouble = superOn;
+    P.jumpCount = 0;
     if (!wasGrounded && P.vy === 0) audio.sfx('land');
     // record safe respawn spot (solid ground, neighbors solid too)
     const col = Math.floor((P.x + P.w / 2) / TILE);
@@ -1491,22 +1546,42 @@ function updatePlay() {
   for (const b of L.books) {
     if (b.got || b.eaten) continue;
     const by = b.y + Math.sin(G.frame * 0.05 + b.phase) * 4;
-    if (Math.abs(b.x - pcx) < 15 && Math.abs(by - pcy) < 22) {
+    const hitX = b.gold ? 20 : 15;
+    const hitY = b.gold ? 28 : 22;
+    if (Math.abs(b.x - pcx) < hitX && Math.abs(by - pcy) < hitY) {
       b.got = true;
       G.runSet.add(b.i);
       G.order.push(b.i);
       const bk = BOOKS[b.i];
       if (b.gold) {
         G.superT = 600;
+        G.powerBannerT = 150;
+        G.powerFlashA = 0.95;
+        G.powerLightningT = 28;
+        G.powerStrikeX = b.x;
+        G.shake = Math.max(G.shake, 18);
         audio.sfx('lengle');
-        spawnBurst(b.x, by, '#ffd23e', 22, 3);
-        addPopup('SUPER READER MODE!', b.x, by - 26, '#ffd23e');
+        audio.sfx('thunder');
+        spawnBurst(b.x, by, '#ffd23e', 36, 4);
         addPopup(trunc(bk.t, 34), b.x, by - 14, '#fff6d0');
       } else {
         audio.sfx('collect');
         spawnBurst(b.x, by, BOOK_COLORS[b.colIdx], 6, 1.5);
         addPopup(trunc(bk.t, 30), b.x, by - 14, '#ffffff');
       }
+    }
+  }
+
+  // Coffee with cream and sugar restores one heart, but never exceeds three.
+  for (const coffee of L.coffees) {
+    if (coffee.got || G.hearts >= 3) continue;
+    const cy = coffee.y + Math.sin(G.frame * 0.06 + coffee.phase) * 2;
+    if (Math.abs(coffee.x - pcx) < 18 && Math.abs(cy + 7 - pcy) < 24) {
+      coffee.got = true;
+      G.hearts = Math.min(3, G.hearts + 1);
+      audio.sfx('coffee');
+      spawnBurst(coffee.x, cy + 6, '#f8f1dd', 16, 2.2);
+      addPopup('CREAM + SUGAR: +1 HEART!', coffee.x, cy - 12, '#fff4b5');
     }
   }
 
@@ -1761,6 +1836,35 @@ function drawWorld() {
   const th = THEMES[L.idx];
   const c1 = Math.max(0, Math.floor(cam / TILE) - 1);
   const c2 = Math.min(L.cols - 1, Math.ceil((cam + VW) / TILE) + 1);
+  const visiblePits = [];
+  let pitCol = c1;
+  while (pitCol <= c2) {
+    if (L.ground[pitCol] != null) { pitCol++; continue; }
+    let start = pitCol;
+    while (pitCol <= c2 && L.ground[pitCol] == null) pitCol++;
+    let end = pitCol - 1;
+    while (start > 0 && L.ground[start - 1] == null) start--;
+    while (end < L.cols - 1 && L.ground[end + 1] == null) end++;
+    pitCol = end + 1;
+    let left = start - 1, right = end + 1;
+    while (left >= 0 && L.ground[left] == null) left--;
+    while (right < L.cols && L.ground[right] == null) right++;
+    const leftRow = left >= 0 ? L.ground[left] : 16;
+    const rightRow = right < L.cols ? L.ground[right] : 16;
+    const top = Math.min(leftRow == null ? 16 : leftRow, rightRow == null ? 16 : rightRow) * TILE;
+    const x = start * TILE, width = (end - start + 1) * TILE;
+    const pitGrad = ctx.createLinearGradient(0, top, 0, VH);
+    pitGrad.addColorStop(0, '#130b20');
+    pitGrad.addColorStop(0.28, '#07040c');
+    pitGrad.addColorStop(1, '#010103');
+    ctx.fillStyle = pitGrad;
+    ctx.fillRect(x, top, width, VH - top);
+    ctx.fillStyle = '#2b1740';
+    ctx.fillRect(x, top, width, 3);
+    ctx.fillStyle = 'rgba(90,55,125,.24)';
+    for (let sx = x + 5; sx < x + width; sx += 10) ctx.fillRect(sx, top + 7, 2, VH - top - 7);
+    visiblePits.push({ start, end, left, right, leftRow, rightRow });
+  }
   for (let col = c1; col <= c2; col++) {
     const r = L.ground[col];
     if (r == null) continue;
@@ -1788,6 +1892,20 @@ function drawWorld() {
           ctx.fillStyle = th.gX; ctx.fillRect(x + ((col * 5) % 10) + 2, y, 3, 1);
         }
       }
+    }
+  }
+
+  // Bright ledge markers make every pit readable against dark terrain.
+  for (const pit of visiblePits) {
+    if (pit.left >= 0 && pit.leftRow != null) {
+      const x = pit.start * TILE - 4, y = pit.leftRow * TILE;
+      ctx.fillStyle = '#ffe45a'; ctx.fillRect(x, y, 4, 14); ctx.fillRect(x - 5, y, 9, 3);
+      ctx.fillStyle = '#3a2410'; ctx.fillRect(x, y + 5, 4, 3);
+    }
+    if (pit.right < L.cols && pit.rightRow != null) {
+      const x = (pit.end + 1) * TILE, y = pit.rightRow * TILE;
+      ctx.fillStyle = '#ffe45a'; ctx.fillRect(x, y, 4, 14); ctx.fillRect(x, y, 9, 3);
+      ctx.fillStyle = '#3a2410'; ctx.fillRect(x, y + 5, 4, 3);
     }
   }
 
@@ -1835,6 +1953,20 @@ function drawWorld() {
     drawTextC(doorOpen ? 'PRESS ENTER' : 'LOCKED', L.doorX + 11, L.doorY - 16 + bob, 1, doorOpen ? '#ffe45a' : '#ff5a5a', '#000');
   }
 
+  // Coffee cups bob above the ground; full-health cups remain for later.
+  for (const coffee of L.coffees) {
+    if (coffee.got || coffee.x < cam - 24 || coffee.x > cam + VW + 24) continue;
+    const cy = coffee.y + Math.sin(G.frame * 0.06 + coffee.phase) * 2;
+    if (G.hearts < 3) {
+      ctx.save();
+      ctx.globalAlpha = Math.sin(G.frame * 0.12 + coffee.phase) * 0.12 + 0.2;
+      ctx.fillStyle = '#fff4b5';
+      ctx.beginPath(); ctx.arc(coffee.x, cy + 7, 14, 0, 6.29); ctx.fill();
+      ctx.restore();
+    }
+    ctx.drawImage(SPR.coffee, Math.floor(coffee.x - SPR.coffee.width / 2), Math.floor(cy));
+  }
+
   // books
   for (const b of L.books) {
     if (b.got || b.eaten) continue;
@@ -1844,19 +1976,25 @@ function drawWorld() {
       const glow = Math.sin(G.frame * 0.15 + b.phase) * 0.2 + 0.5;
       ctx.save(); ctx.globalAlpha = glow;
       ctx.fillStyle = '#ffd23e';
-      ctx.beginPath(); ctx.arc(b.x, by + 7, 12, 0, 6.29); ctx.fill();
+      ctx.beginPath(); ctx.arc(b.x, by + 7, 19, 0, 6.29); ctx.fill();
       ctx.restore();
       if (G.frame % 7 === 0) particles.push({
-        x: b.x + (Math.random() - .5) * 16, y: by + (Math.random() - .5) * 16,
+        x: b.x + (Math.random() - .5) * 24, y: by + (Math.random() - .5) * 24,
         vx: 0, vy: -.4, life: 18, color: '#fff6d0', g: 0,
       });
     }
     const cv = coverOf(b.i);
-    if (cv) {
-      if (b.gold) { // gold frame around L'Engle covers
-        ctx.fillStyle = (G.frame >> 3) % 2 ? '#ffd23e' : '#fff6d0';
-        ctx.fillRect(Math.floor(b.x - 7), Math.floor(by - 2), 14, 18);
-      }
+    if (b.gold) {
+      // L'Engle power books are physically larger than ordinary covers.
+      ctx.save();
+      ctx.translate(Math.floor(b.x), Math.floor(by + 7));
+      ctx.scale(1.6, 1.6);
+      ctx.fillStyle = (G.frame >> 3) % 2 ? '#ffd23e' : '#fff6d0';
+      ctx.fillRect(-7, -9, 14, 18);
+      if (cv) ctx.drawImage(cv, -6, -8);
+      else ctx.drawImage(bookSprite(b.colIdx, true), -6, -7);
+      ctx.restore();
+    } else if (cv) {
       ctx.drawImage(cv, Math.floor(b.x - 6), Math.floor(by - 1));
     } else {
       ctx.drawImage(bookSprite(b.colIdx, b.gold), Math.floor(b.x - 6), Math.floor(by));
@@ -2060,7 +2198,52 @@ function drawHUD() {
     ctx.fillStyle = '#000'; ctx.fillRect(VW / 2 - 42, 26, 84, 6);
     ctx.fillStyle = ['#ff5abf', '#5adfff', '#ffe45a'][(G.frame >> 3) % 3];
     ctx.fillRect(VW / 2 - 40, 27, w, 4);
-    drawTextC('SUPER READER', VW / 2, 35, 1, '#ffe45a', '#000');
+    drawTextC('SUPER READER - TRIPLE JUMP', VW / 2, 35, 1, '#ffe45a', '#000');
+  }
+}
+function drawPowerDrama() {
+  if (G.powerFlashA > 0.02) {
+    ctx.fillStyle = 'rgba(225,235,255,' + G.powerFlashA.toFixed(2) + ')';
+    ctx.fillRect(0, 0, VW, VH);
+  }
+
+  if (G.powerLightningT > 0) {
+    const strikeX = Math.max(24, Math.min(VW - 24, G.powerStrikeX - cam));
+    const targetY = Math.max(70, Math.min(VH - 30, P.y + P.h / 2));
+    const points = [{ x: strikeX, y: -4 }];
+    for (let i = 1; i < 9; i++) {
+      const y = targetY * (i / 9);
+      const jag = Math.sin(i * 9.7 + G.frame * 1.9) * 13 + (i % 2 ? 7 : -7);
+      points.push({ x: strikeX + jag, y });
+    }
+    points.push({ x: strikeX, y: targetY });
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, G.powerLightningT / 8);
+    ctx.lineJoin = 'bevel';
+    for (const [width, color] of [[7, '#5adfff'], [3, '#ffffff']]) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  if (G.powerBannerT > 0) {
+    const age = 150 - G.powerBannerT;
+    const alpha = Math.min(1, age / 10, G.powerBannerT / 24);
+    const pulse = 1 + Math.sin(G.frame * 0.22) * 0.035;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = 'rgba(8,4,18,.72)';
+    ctx.fillRect(50, 72, VW - 100, 74);
+    ctx.translate(VW / 2, 88);
+    ctx.scale(pulse, pulse);
+    drawTextC("L'ENGLE BOOK FOUND!", 0, 0, 4, '#ffe45a', '#3a2410');
+    drawTextC('SUPER READER - TRIPLE JUMP!', 0, 32, 2, '#ffffff', '#6e2a54');
+    ctx.restore();
   }
 }
 function drawHeart(x, y, full) {
@@ -3026,7 +3209,7 @@ function render() {
     case 'map': drawMap(); break;
     case 'cutscene': drawCutscene(); break;
     case 'intro': drawIntro(); break;
-    case 'play': drawWorld(); drawHUD(); break;
+    case 'play': drawWorld(); drawHUD(); drawPowerDrama(); break;
     case 'inv': drawInventory(); break;
     case 'cleared': drawCleared(); break;
     case 'dead': drawDead(); break;
