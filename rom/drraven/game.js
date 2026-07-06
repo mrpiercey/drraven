@@ -3176,14 +3176,14 @@ const MAP_STOPS = [
   { x: 122, y: 212, label: 'POINT CLEAR', ldx: 4,   ldy: 12, heart: true },
   { x: 252, y: 88,  label: 'LEXINGTON',   ldx: -44, ldy: 0 },
   { x: 272, y: 100, label: 'UK MED',      ldx: 30,  ldy: 2 },
-  // Kenwick is a Lexington neighborhood — its pin sits beside Lexington's
-  { x: 262, y: 84,  label: 'KENWICK',     ldx: 34,  ldy: -6 },
+  // Kenwick is a Lexington neighborhood — its pin sits right above Lexington's
+  { x: 252, y: 70,  label: 'KENWICK',     ldx: -38, ldy: 0 },
   { x: 330, y: 38,  label: "JACK'S LAIR", ldx: 46,  ldy: 0, evil: true },
 ];
 const MAP_START = { x: 30, y: 200 }; // she walks in along the gulf coast
 const MAP_GEO = [
   ['ATLANTIC', 452, 28], ['GULF OF MEXICO', 130, 262],
-  ['FLORIDA', 300, 250], ['OHIO', 388, 52],
+  ['FLORIDA', 300, 250],
 ];
 let mapCanvas = null;
 function tileRnd(tx, ty, k) { // deterministic per-tile hash for speckles
