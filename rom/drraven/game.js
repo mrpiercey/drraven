@@ -510,6 +510,18 @@ const STUDENT_SPR = [
   '...GG..GG...',
   '...FF..FF...',
 ];
+// a Kenwick skunk, tail up and ready to spray
+const SKUNK_SPR = [
+  '..............WW',
+  '.............WWW',
+  '.GG.........WWW.',
+  'GGGG...WWWWWWWW.',
+  'GeGG.WWWWWWWWGG.',
+  'GGGGGGGGGGGGGG..',
+  '.GGGGGGGGGGGGG..',
+  '..G..G....G..G..',
+  '..F..F....F..F..',
+];
 // a gulf-coast jellyfish, pulsing along
 const JELLY_SPR = [
   '....pppppp....',
@@ -686,6 +698,9 @@ const SPR = {
   }),
   jelly: makeSprite(JELLY_SPR, {
     p: '#f08ad0', W: '#ffd0ee', u: '#c46ad8',
+  }),
+  skunk: makeSprite(SKUNK_SPR, {
+    G: '#26262b', W: '#f4f4f8', e: '#ffffff', F: '#111118',
   }),
 };
 SPR.jackHurt = tinted(SPR.jack, '#ff4040', .5);
@@ -973,7 +988,7 @@ const LVL_META = [
   { name: 'POINT CLEAR, ALABAMA',    sub: 'MARRYING THE GREATEST HUSBAND IN THE WORLD' },
   { name: 'LEXINGTON, KENTUCKY',     sub: 'HORSE COUNTRY & THE UK PHD' },
   { name: 'UK MEDICAL SCHOOL',       sub: 'PAGING DR. RAVEN' },
-  { name: 'SCARLETT, HANK & RAMONA', sub: "JUST OUTSIDE JACK'S LAIR, OHIO" },
+  { name: 'KENWICK, KENTUCKY',       sub: 'SAVING SCARLETT, HANK & RAMONA' },
   { name: 'THE LAST BOOKS',          sub: "JACK'S KENNEL - THE FINAL BATTLE" },
 ];
 // theme id + ground colors (g ground, gD shade, gT top edge, gX accent)
@@ -984,7 +999,7 @@ const THEMES = [
   { id: 'wedding',  g: '#f0e4e8', gD: '#d8c4cc', gT: '#fdf6f8', gX: '#e88aa8' },
   { id: 'horse',    g: '#8a5a2e', gD: '#6e4522', gT: '#5aa838', gX: '#4a8c2e' },
   { id: 'medical',  g: '#cfe0e4', gD: '#aec8ce', gT: '#e8f2f4', gX: '#8fb0b8' },
-  { id: 'ohio',     g: '#4a3a52', gD: '#382a40', gT: '#5c4a66', gX: '#2a1e30' },
+  { id: 'kenwick',  g: '#8a5a2e', gD: '#6e4522', gT: '#6cc94a', gX: '#5aa838' },
   { id: 'kennel',   g: '#6e6a72', gD: '#57535e', gT: '#807c88', gX: '#3e3a46' },
 ];
 const LVL_PALS = [
@@ -1000,8 +1015,8 @@ const LVL_PALS = [
   { sky1:'#2a52c9', sky2:'#9ec4f0', wall:'#233a8a', wallD:'#1a2c68', brick:'#3a5cc9', brickD:'#2b4496', beam:'#e8e8f2' },
   // med school: clean teal
   { sky1:'#1d4e58', sky2:'#7bd0d6', wall:'#265e66', wallD:'#1b4248', brick:'#3aa0ae', brickD:'#2b7580', beam:'#7bd0d6' },
-  // outside the lair: ohio storm
-  { sky1:'#161022', sky2:'#3a2a4a', wall:'#4a2d6e', wallD:'#37204f', brick:'#7a52b0', brickD:'#5a3a86', beam:'#c77bd6' },
+  // kenwick: golden-hour neighborhood stroll
+  { sky1:'#4a90d9', sky2:'#f4d9a8', wall:'#8a5a3e', wallD:'#6e4530', brick:'#c96a4a', brickD:'#a04e34', beam:'#e8d9b0' },
   // the kennel: crimson dark
   { sky1:'#120808', sky2:'#3a0e0e', wall:'#4f1a1a', wallD:'#381010', brick:'#8a3030', brickD:'#642222', beam:'#c96a6a' },
 ];
@@ -1116,7 +1131,7 @@ const P = {   // player
   safeX: 60, safeY: 200,
 };
 let cam = 0;
-let particles = [], popups = [], projs = [], lostBookFx = [];
+let particles = [], popups = [], projs = [], lostBookFx = [], stinks = [];
 let shotsUsed = 0, throwCool = 0;
 function ammoLeft() { return Math.max(0, G.runSet.size - shotsUsed); }
 
@@ -1230,6 +1245,7 @@ function genLevel(idx) {
     : idx === 1 ? ['blot', 'horse', 'moth', 'horse']
     : idx === 2 ? ['blot', 'elephant', 'moth', 'elephant']
     : idx === 5 ? ['blot', 'student', 'moth', 'student']
+    : idx === 6 ? ['blot', 'skunk', 'moth', 'skunk']
     : ['blot', 'env', 'moth'];
   for (let k = 0; k < eCount; k++) {
     const ex = 420 + (widthPx - 750) * (k / Math.max(1, eCount - 1)) + (rnd() - .5) * 120;
@@ -1395,21 +1411,25 @@ function drawProp(p) {
         ctx.fillStyle = '#ffffff'; ctx.fillRect(x - 5, gy - 13, 10, 3); ctx.fillRect(x - 3, gy - 7, 6, 4);
       }
       break;
-    case 'ohio':
-      if (k === 0) { // dead tree
-        ctx.fillStyle = '#2a1e30';
-        ctx.fillRect(x - 2, gy - 34, 4, 34);
-        ctx.fillRect(x - 12, gy - 30, 10, 3); ctx.fillRect(x - 12, gy - 36, 3, 8);
-        ctx.fillRect(x + 2, gy - 40, 3, 10); ctx.fillRect(x + 2, gy - 40, 10, 3);
-      } else if (k === 1) { // BEWARE sign
-        ctx.fillStyle = '#54381f'; ctx.fillRect(x - 1, gy - 18, 3, 18);
-        ctx.fillStyle = '#ffd23e'; ctx.fillRect(x - 12, gy - 30, 25, 13);
-        ctx.fillStyle = '#1c1c24';
-        drawText('BEWARE', x - 10, gy - 27, 1, '#1c1c24');
-        drawText('OF DOG', x - 10, gy - 21, 1, '#1c1c24');
-      } else { // rubble
-        ctx.fillStyle = '#382a40';
-        ctx.fillRect(x - 8, gy - 6, 10, 6); ctx.fillRect(x + 2, gy - 4, 8, 4); ctx.fillRect(x - 3, gy - 10, 6, 4);
+    case 'kenwick':
+      if (k === 0) { // leafy street tree
+        ctx.fillStyle = '#6e4522';
+        ctx.fillRect(x - 2, gy - 30, 5, 30);
+        ctx.fillStyle = '#3f8c33';
+        ctx.fillRect(x - 12, gy - 42, 25, 12);
+        ctx.fillRect(x - 8, gy - 48, 17, 8);
+        ctx.fillStyle = '#4fa83f';
+        ctx.fillRect(x - 10, gy - 40, 8, 6); ctx.fillRect(x + 3, gy - 46, 7, 6);
+      } else if (k === 1) { // mailbox with the flag up
+        ctx.fillStyle = '#54381f'; ctx.fillRect(x - 1, gy - 16, 3, 16);
+        ctx.fillStyle = '#4a5a6e'; ctx.fillRect(x - 7, gy - 23, 15, 8);
+        ctx.fillStyle = '#3a4858'; ctx.fillRect(x - 7, gy - 23, 15, 2);
+        ctx.fillStyle = '#d93636'; ctx.fillRect(x + 6, gy - 27, 2, 5);
+      } else { // fire hydrant
+        ctx.fillStyle = '#d93636';
+        ctx.fillRect(x - 4, gy - 10, 9, 10); ctx.fillRect(x - 2, gy - 13, 5, 3);
+        ctx.fillRect(x - 6, gy - 8, 13, 3);
+        ctx.fillStyle = '#ffe45a'; ctx.fillRect(x - 1, gy - 12, 3, 2);
       }
       break;
     default: // kennel
@@ -1430,6 +1450,45 @@ function drawProp(p) {
       }
       break;
   }
+}
+
+// Kenwick's finish line: Wilsons Meat & Groceries. A brick storefront wraps
+// the exit door, and the big two-panel pole sign stands over the kids' cage.
+function drawWilsons() {
+  const cg = L.cage;
+  const px = cg.x + cg.w / 2;
+  // storefront around the exit door
+  const fx = L.doorX - 28;
+  ctx.fillStyle = '#a04e34'; ctx.fillRect(fx, 158, 96, 98);            // brick face
+  ctx.fillStyle = '#8a3f28';
+  for (let by = 162; by < 256; by += 8)
+    for (let bx = fx + (by % 16 ? 0 : 6); bx < fx + 96; bx += 12) ctx.fillRect(bx, by, 5, 2);
+  ctx.fillStyle = '#f2ecd8'; ctx.fillRect(fx + 4, 166, 88, 12);        // fascia board
+  drawTextC('WILSONS GROCERY', fx + 48, 170, 1, '#2a2018');
+  for (let a = 0; a < 6; a++) {                                        // striped awning
+    ctx.fillStyle = a % 2 ? '#f2ecd8' : '#a33327';
+    ctx.fillRect(L.doorX - 6 + a * 6, 182, 6, 8);
+  }
+  ctx.fillStyle = '#c9dce8'; ctx.fillRect(fx + 8, 190, 24, 32);        // display window
+  ctx.fillStyle = '#8a5a2e'; ctx.fillRect(fx + 12, 208, 8, 6); ctx.fillRect(fx + 20, 210, 8, 4); // hams
+  // --- the big pole sign, the family right underneath ---
+  ctx.fillStyle = '#8a8a92'; ctx.fillRect(px - 2, 112, 4, 112);        // pole
+  ctx.strokeStyle = '#8a8a92'; ctx.lineWidth = 1;                       // guy wires
+  ctx.beginPath();
+  ctx.moveTo(px, 112); ctx.lineTo(px - 44, 122);
+  ctx.moveTo(px, 112); ctx.lineTo(px + 44, 122);
+  ctx.stroke();
+  ctx.fillStyle = '#54432e'; ctx.fillRect(px - 46, 118, 92, 44);       // main panel
+  ctx.fillStyle = '#f2ecd8'; ctx.fillRect(px - 44, 120, 88, 40);
+  drawTextC('WILSONS', px, 124, 2, '#2a2018');
+  drawTextC('MEAT & GROCERIES', px, 138, 1, '#2a2018');
+  ctx.fillStyle = '#c9553e'; ctx.fillRect(px - 34, 144, 68, 1);        // red rule
+  drawTextC('COOKED COUNTRY HAMS', px, 148, 1, '#2a2018');
+  ctx.fillStyle = '#54432e'; ctx.fillRect(px - 46, 164, 92, 26);       // lower panel
+  ctx.fillStyle = '#f2ecd8'; ctx.fillRect(px - 44, 166, 88, 22);
+  drawText('HOT', px - 40, 169, 1, '#d93636');
+  drawText('LUNCH MON-FRI', px - 24, 169, 1, '#2a2018');
+  drawTextC('SOUPS - SANDWICHES', px, 179, 1, '#c9553e');
 }
 
 // pre-rendered, theme-specific background layer (tiles horizontally, parallax)
@@ -1517,19 +1576,34 @@ function makeBgLayers(pal, idx) {
       ey = m < 40 ? 120 : m < 44 ? 120 - (m - 40) * 6 : m < 52 ? 96 + (m - 44) * 6 : 120;
       g.fillRect(ex, ey, 2, 2);
     }
-  } else if (theme === 'ohio') {
-    // storm clouds + the lair on the horizon
-    g.fillStyle = '#241a30';
-    g.beginPath(); g.arc(50, 30, 30, 0, 6.29); g.fill();
-    g.beginPath(); g.arc(120, 20, 40, 0, 6.29); g.fill();
-    g.beginPath(); g.arc(210, 34, 34, 0, 6.29); g.fill();
-    g.fillStyle = '#1c1428'; // lair silhouette
+  } else if (theme === 'kenwick') {
+    // a friendly Lexington neighborhood at golden hour
+    cloud(50, 30, 1); cloud(180, 46, 1);
+    g.fillStyle = '#ffd98a'; g.beginPath(); g.arc(210, 40, 13, 0, 6.29); g.fill(); // low sun
+    g.fillStyle = '#3f7c33'; // distant tree line
+    for (let tx = 0; tx < 512; tx += 46) { g.beginPath(); g.arc(tx + 20, 190, 24, 0, 6.29); g.fill(); }
+    g.fillStyle = '#55803a'; g.fillRect(0, 196, 512, 30); // hedges
+    // a row of front-porch houses
+    const hues = [['#c9d4e8', '#8a99b8'], ['#e8d4a8', '#b8a578'], ['#c9e0c0', '#93b08a'], ['#e8c0b8', '#b89088']];
+    for (let i = 0; i < 4; i++) {
+      const hx = 20 + i * 128, wallC = hues[i][0], roofC = hues[i][1];
+      g.fillStyle = wallC; g.fillRect(hx, 168, 64, 58);          // house
+      g.fillStyle = roofC;                                        // gable roof
+      g.beginPath(); g.moveTo(hx - 8, 170); g.lineTo(hx + 32, 142); g.lineTo(hx + 72, 170); g.closePath(); g.fill();
+      g.fillStyle = '#ffd98a';                                    // warm windows
+      g.fillRect(hx + 8, 180, 12, 14); g.fillRect(hx + 44, 180, 12, 14);
+      g.fillStyle = '#54381f'; g.fillRect(hx + 26, 196, 12, 30);  // door
+      g.fillStyle = '#f0f0f4'; g.fillRect(hx - 2, 210, 68, 3);    // porch rail
+    }
+    // telephone poles with sagging lines (one of these holds up Wilsons' sign)
+    g.fillStyle = '#54432e';
+    for (let px = 96; px < 512; px += 256) { g.fillRect(px, 96, 4, 130); g.fillRect(px - 10, 102, 24, 3); }
+    g.strokeStyle = '#3a3430'; g.lineWidth = 1;
     g.beginPath();
-    g.moveTo(60, 210); g.lineTo(128, 90); g.lineTo(196, 210); g.closePath(); g.fill();
-    g.fillStyle = '#ff3030'; // glowing windows
-    g.fillRect(120, 130, 5, 7); g.fillRect(132, 130, 5, 7); g.fillRect(126, 112, 5, 6);
-    g.fillStyle = '#2a2038';
-    for (let hx = 0; hx < 512; hx += 4) g.fillRect(hx, 208 + Math.floor(Math.sin(hx * .05) * 6), 4, 80);
+    for (let wx = -160; wx < 512; wx += 256) {
+      g.moveTo(wx + 98, 104); g.quadraticCurveTo(wx + 226, 122, wx + 354, 104);
+    }
+    g.stroke();
   } else { // kennel
     g.fillStyle = '#3a3540'; g.fillRect(0, 0, 512, 288);
     g.fillStyle = '#2e2a36';
@@ -1575,7 +1649,7 @@ function startLevel(idx, freshHearts) {
   P.safeX = 60; P.safeY = 180;
   P.iframes = 0; P.facing = 1; P.grounded = false; P.jumpCount = 0;
   cam = 0;
-  particles = []; popups = []; projs = []; lostBookFx = [];
+  particles = []; popups = []; projs = []; lostBookFx = []; stinks = [];
   shotsUsed = 0; throwCool = 0;
   for (const b of L.books) loadCover(b.i); // fetch real covers up front
   // ARCADE BUILD: show a loading bar while this level's covers download, so the
@@ -1760,6 +1834,10 @@ function spawnBurst(x, y, color, n, spd) {
 function addPopup(text, x, y, color) {
   popups.push({ text, x, y, life: 80, color });
 }
+// a tiny headstone that floats up where a brave skunk fell
+function addGrave(x, y) {
+  popups.push({ grave: true, x, y: y - 8, life: 110 });
+}
 
 // ---------------------------------------------------------- update: play
 function updatePlay() {
@@ -1936,6 +2014,29 @@ function updatePlay() {
       const egt = groundTopAt(ecol);
       if (egt == null) { e.dir *= -1; e.x += e.dir * 4; } // don't gallop into pits
       else e.y = egt - 11; // drawn at 2x — feet on the ground
+    } else if (e.type === 'skunk') {
+      // skunks trot around the yards; near Dr. Raven they stop, turn, and spray
+      if (e.sprayT > 0) {
+        e.sprayT--;
+        if (e.sprayT === 12) {
+          const sd = Math.sign(pcx - e.x) || e.dir;
+          stinks.push({ x: e.x + sd * 10, y: e.y - 4, vx: sd * 1.1, t: 0, life: 260 });
+          audio.sfx('throw');
+        }
+      } else {
+        e.x += e.dir * 0.7 * e.speed;
+        if (e.x > e.ax + 85) e.dir = -1;
+        else if (e.x < e.ax - 85) e.dir = 1;
+        if (e.cool > 0) e.cool--;
+        else if (Math.abs(pcx - e.x) < 190 && Math.abs(pcy - e.y) < 40) {
+          e.sprayT = 26; e.cool = 150;
+          e.dir = Math.sign(pcx - e.x) || e.dir;
+        }
+      }
+      const ecol = Math.max(0, Math.min(L.cols - 1, Math.floor(e.x / TILE)));
+      const egt = groundTopAt(ecol);
+      if (egt == null) { e.dir *= -1; e.x += e.dir * 4; }
+      else e.y = egt - 5;
     } else if (e.type === 'student') {
       // med students hurry over to ask a question; once answered (or handed a
       // book) they stop chasing. Reading students stand perfectly still.
@@ -1973,15 +2074,16 @@ function updatePlay() {
     // students who got their answer (or a book to read) are harmless
     if (e.type === 'student' && (e.st === 'asked' || e.st === 'reading')) continue;
     // collision with player
-    const ew = e.type === 'moth' ? 18 : e.type === 'horse' || e.type === 'elephant' ? 34 : e.type === 'jelly' ? 14 : e.type === 'student' ? 12 : 16;
-    const eh = e.type === 'moth' ? 12 : e.type === 'horse' || e.type === 'elephant' ? 20 : e.type === 'jelly' ? 12 : e.type === 'student' ? 16 : 13;
+    const ew = e.type === 'moth' ? 18 : e.type === 'horse' || e.type === 'elephant' ? 34 : e.type === 'jelly' ? 14 : e.type === 'student' ? 12 : e.type === 'skunk' ? 16 : 16;
+    const eh = e.type === 'moth' ? 12 : e.type === 'horse' || e.type === 'elephant' ? 20 : e.type === 'jelly' ? 12 : e.type === 'student' ? 16 : e.type === 'skunk' ? 10 : 13;
     if (pcx > e.x - ew / 2 - 6 && pcx < e.x + ew / 2 + 6 &&
         pcy > e.y - eh / 2 - 12 && pcy < e.y + eh / 2 + 12) {
       if (superOn) {
         e.alive = false;
         audio.sfx('pop');
         spawnBurst(e.x, e.y, '#ffffff', 12, 2.5);
-        addPopup(defeatQuip(e) || 'POOF!', e.x, e.y - 14, '#ffe45a');
+        if (e.type === 'skunk') addGrave(e.x, e.y);
+        else addPopup(defeatQuip(e) || 'POOF!', e.x, e.y - 14, '#ffe45a');
       } else if (e.type === 'student') {
         // no heart lost — but the question costs 10 minutes off the clock
         e.st = 'asked';
@@ -1992,6 +2094,20 @@ function updatePlay() {
       } else hurt(e.x);
     }
   }
+
+  // stinky skunk clouds drift low along the yards — jump them or book them
+  for (const c of stinks) {
+    c.t++; c.life--;
+    c.x += c.vx;
+    c.y += Math.sin(c.t * 0.15) * 0.2;
+    if (c.life <= 0 || c.x < cam - 40 || c.x > cam + VW + 40) { c.dead = true; continue; }
+    if (Math.abs(pcx - c.x) < 13 && Math.abs(pcy - c.y) < 12) {
+      c.dead = true;
+      if (superOn || P.iframes > 0) { spawnBurst(c.x, c.y, '#7dc93e', 8, 2); audio.sfx('pop'); }
+      else hurt(c.x);
+    }
+  }
+  stinks = stinks.filter(c => !c.dead);
 
   // throw collected books (ENTER anywhere but the door; CMD also works)
   const nearDoor = Math.abs((P.x + P.w / 2) - (L.doorX + 11)) < 26 && P.y + P.h > 220;
@@ -2030,7 +2146,17 @@ function updatePlay() {
         e.alive = false; pr.dead = true;
         audio.sfx('pop');
         spawnBurst(e.x, e.y, '#ffffff', 12, 2.5);
-        addPopup(defeatQuip(e) || "I'VE BEEN BY HERE TONIGHT!", e.x, e.y - 14, '#ffe45a');
+        if (e.type === 'skunk') addGrave(e.x, e.y);
+        else addPopup(defeatQuip(e) || "I'VE BEEN BY HERE TONIGHT!", e.x, e.y - 14, '#ffe45a');
+        break;
+      }
+    }
+    // books burst stink clouds mid-air
+    if (!pr.dead) for (const c of stinks) {
+      if (!c.dead && Math.abs(c.x - pr.x) < 13 && Math.abs(c.y - pr.y) < 13) {
+        c.dead = true; pr.dead = true;
+        spawnBurst(c.x, c.y, '#7dc93e', 10, 2);
+        audio.sfx('pop');
         break;
       }
     }
@@ -2269,12 +2395,10 @@ function drawWorld() {
       }
       if (row === r) { // top edge
         ctx.fillStyle = th.gT; ctx.fillRect(x, y, TILE, 3);
-        if (th.id === 'country' || th.id === 'horse') { // grass blades
+        if (th.id === 'country' || th.id === 'horse' || th.id === 'kenwick') { // grass blades
           ctx.fillRect(x + 2, y - 2, 2, 2); ctx.fillRect(x + 9, y - 2, 2, 2);
         } else if (th.id === 'wedding') { // rose petal trim
           ctx.fillStyle = th.gX; ctx.fillRect(x + 4, y, 2, 2); ctx.fillRect(x + 12, y + 1, 2, 2);
-        } else if (th.id === 'ohio') {
-          ctx.fillStyle = th.gX; ctx.fillRect(x + ((col * 5) % 10) + 2, y, 3, 1);
         }
       }
     }
@@ -2312,6 +2436,9 @@ function drawWorld() {
     }
     ctx.fillStyle = '#4f3419'; ctx.fillRect(pl.x, pl.y + 4, pl.w, 1);
   }
+
+  // Kenwick ends at the family grocery — sign and storefront sit behind the door
+  if (L.idx === 6 && L.cage) drawWilsons();
 
   // door (glows gold once Dr. Jack is beaten, red padlock while he guards it)
   const doorOpen = L.boss.st === 'dead';
@@ -2473,11 +2600,13 @@ function drawWorld() {
     const spr = e.type === 'blot' ? SPR.blot : e.type === 'env' ? SPR.env
       : e.type === 'jelly' ? SPR.jelly : e.type === 'horse' ? SPR.horse
       : e.type === 'elephant' ? SPR.elephant : e.type === 'student' ? SPR.student
+      : e.type === 'skunk' ? SPR.skunk
       : SPR.moth;
-    const grounded = e.type === 'horse' || e.type === 'elephant' || e.type === 'student';
+    const grounded = e.type === 'horse' || e.type === 'elephant' || e.type === 'student' || e.type === 'skunk';
     // ground runners bounce with their stride instead of hovering
+    const still = (e.type === 'student' && e.st === 'reading') || (e.type === 'skunk' && e.sprayT > 0);
     const wob = grounded
-      ? (e.type === 'student' && e.st === 'reading' ? 0 : -Math.abs(Math.sin(e.t * 0.18)) * 2)
+      ? (still ? 0 : -Math.abs(Math.sin(e.t * 0.18)) * 2)
       : Math.sin(e.t * 0.1) * 1.5;
     if (e.type === 'moth') { // alternating wing shimmer
       ctx.save();
@@ -2504,6 +2633,21 @@ function drawWorld() {
         drawText('?', Math.floor(e.x - 2), Math.floor(e.y - 20 + wob), 2, '#7de8ff', '#000');
       }
     }
+  }
+
+  // skunk stink clouds — low, green, and jumpable
+  for (const c of stinks) {
+    ctx.save();
+    ctx.globalAlpha = 0.55 + Math.sin(c.t * 0.2) * 0.15;
+    ctx.fillStyle = '#6cc94a';
+    ctx.beginPath();
+    ctx.arc(c.x - 5, c.y + 2, 5, 0, 6.29);
+    ctx.arc(c.x + 3, c.y, 6, 0, 6.29);
+    ctx.arc(c.x + 8, c.y + 3, 4, 0, 6.29);
+    ctx.fill();
+    ctx.fillStyle = '#8adf5e';
+    ctx.beginPath(); ctx.arc(c.x, c.y - 2, 4, 0, 6.29); ctx.fill();
+    ctx.restore();
   }
 
   // player
@@ -2546,7 +2690,16 @@ function drawWorld() {
   // popups (book titles)
   for (const p of popups) {
     ctx.globalAlpha = Math.min(1, p.life / 25);
-    drawTextC(p.text, p.x, p.y, 1, p.color, '#000');
+    if (p.grave) { // a humble marker: RIP SKUNK
+      ctx.fillStyle = '#8a8a92';
+      ctx.fillRect(p.x - 11, p.y - 8, 22, 20);
+      ctx.fillRect(p.x - 8, p.y - 12, 16, 5);
+      ctx.fillStyle = '#6e6e78'; ctx.fillRect(p.x - 11, p.y + 10, 22, 2);
+      drawTextC('RIP', p.x, p.y - 6, 1, '#2a2a30');
+      drawTextC('SKUNK', p.x, p.y + 2, 1, '#2a2a30');
+    } else {
+      drawTextC(p.text, p.x, p.y, 1, p.color, '#000');
+    }
   }
   ctx.globalAlpha = 1;
 
@@ -2896,7 +3049,8 @@ const MAP_STOPS = [
   { x: 122, y: 212, label: 'POINT CLEAR', ldx: 4,   ldy: 12, heart: true },
   { x: 252, y: 88,  label: 'LEXINGTON',   ldx: -44, ldy: 0 },
   { x: 272, y: 100, label: 'UK MED',      ldx: 30,  ldy: 2 },
-  { x: 300, y: 60,  label: 'THE KIDS',    ldx: -36, ldy: 0 },
+  // Kenwick is a Lexington neighborhood — its pin sits beside Lexington's
+  { x: 262, y: 84,  label: 'KENWICK',     ldx: 34,  ldy: -6 },
   { x: 330, y: 38,  label: "JACK'S LAIR", ldx: 46,  ldy: 0, evil: true },
 ];
 const MAP_START = { x: 30, y: 200 }; // she walks in along the gulf coast
