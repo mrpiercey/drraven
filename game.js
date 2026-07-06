@@ -669,6 +669,11 @@ const audio = (() => {
       lead: [57,0,0,0,60,0,57,0,63,0,62,0,60,0,57,0,55,0,0,0,58,0,55,0,62,0,61,0,57,0,0,0],
       bass: [33,0,33,0,33,0,33,0,31,0,31,0,31,0,31,0,27,0,27,0,27,0,27,0,29,0,29,0,28,0,28,0],
     },
+    happy: { // sunny major — birthday morning at the beach house (perfect ending)
+      bpm: 126,
+      lead: [72,0,72,74,76,0,76,77,79,0,77,76,74,0,72,0,77,0,77,79,81,0,79,77,76,0,74,76,72,0,0,0],
+      bass: [36,0,43,0,36,0,43,0,41,0,48,0,43,0,50,0,41,0,48,0,36,0,43,0,43,0,50,0,36,0,43,0],
+    },
   };
   function ensure() {
     if (!ac) {
@@ -872,6 +877,7 @@ const TOTAL_LENGLE = BOOKS.filter(b => b.le).length;
 
 // ---------------------------------------------------------- save
 const SAVE_KEY = 'drraven-save-v3';
+const CAGE_LEVELS = [0, 6]; // G-Daddy & Pep's kennel (L1), the kids' cage (L7)
 function loadSave() {
   try {
     const s = JSON.parse(localStorage.getItem(SAVE_KEY));
@@ -882,10 +888,17 @@ function loadSave() {
       const completed = Array.isArray(s.completed)
         ? s.completed.filter(i => Number.isInteger(i) && i >= 0 && i < LVL_META.length)
         : inferred;
+      // Rescues (the caged family on L1/L7) unlock the perfect ending. Older
+      // saves predate the field; completing a cage level implies the rescue,
+      // since the exit only opens once Jack is beaten and the cage springs.
+      const rescued = Array.isArray(s.rescued)
+        ? s.rescued.filter(i => Number.isInteger(i))
+        : completed.filter(i => CAGE_LEVELS.includes(i));
       return {
         level: Math.max(0, Math.min(LVL_META.length - 1, Math.floor(s.level))),
         collected: s.collected,
         completed,
+        rescued,
       };
     }
   } catch (e) {}
@@ -901,6 +914,7 @@ function writeSave() {
       level: nextResumeLevel(),
       collected: [...G.collected],
       completed: [...G.completedLevels].sort((a, b) => a - b),
+      rescued: [...G.rescued].sort((a, b) => a - b),
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(save));
     G.saveCache = save;
@@ -926,6 +940,7 @@ const G = {
   runSet: new Set(),      // this level attempt
   order: [],              // collect order for inventory
   hearts: 3,
+  rescued: new Set(),     // cage levels where the family was freed
   ramona: false, // heart-loss immunity for the current level only
   time: LEVEL_TIME,
   superT: 0,
@@ -947,6 +962,11 @@ function applySave(save) {
   G.collected = new Set(save ? save.collected : []);
   G.order = save ? [...save.collected] : [];
   G.completedLevels = new Set(save ? save.completed : []);
+  G.rescued = new Set(save ? save.rescued : []);
+}
+// The perfect ending: every book collected AND everyone rescued from Jack's cages.
+function perfectRun() {
+  return G.collected.size >= TOTAL_BOOKS && CAGE_LEVELS.every(i => G.rescued.has(i));
 }
 function finalBattleUnlocked() {
   for (let i = 0; i < LVL_META.length - 1; i++) if (!G.completedLevels.has(i)) return false;
@@ -1421,6 +1441,7 @@ function completeLevel() {
   const completedLevel = G.level;
   for (const i of G.runSet) G.collected.add(i);
   G.runSet = new Set();
+  if (L.cage && L.cage.open) G.rescued.add(completedLevel);
   const nBooksHere = LEVEL_BOOKS[completedLevel].length;
   const gotHere = LEVEL_BOOKS[completedLevel].filter(i => G.collected.has(i)).length;
   G.clearStats = { got: gotHere, of: nBooksHere, clock: formatLevelClock(G.time) };
@@ -1429,7 +1450,8 @@ function completeLevel() {
   audio.stop();
   audio.sfx('clear');
   if (completedLevel === LVL_META.length - 1) {
-    startCutscene();
+    if (perfectRun()) startPerfect();
+    else startCutscene();
   } else {
     if (!G.levelSelectRun) G.level = completedLevel + 1;
     G.state = 'cleared';
@@ -3001,6 +3023,293 @@ function drawCutscene() {
   }
 }
 
+// ---------------------------------------------------------- perfect ending
+// Earned by collecting all 1,026 books AND rescuing everyone from Jack's
+// cages. No storm, no dread: Dr. Raven wakes in a sunny beach house with her
+// whole family, then everyone gathers on the beach for her 44th birthday.
+const PERFECT_BOXES = [
+  { who: null, lines: ['DR. RAVEN WAKES UP IN A SUNNY', 'BEACH HOUSE. EVERY BOOK IS', 'SAFE ON ITS SHELF.'] },
+  { who: 'DR. RAVEN', lines: ['WHAT A DREAM... WAIT.', 'I SMELL COFFEE... AND THE SEA?'] },
+  { who: 'DONNIE', lines: ['GOOD MORNING, BIRTHDAY GIRL!', 'FRESH COFFEE, JUST HOW', 'YOU LIKE IT.'] },
+  { who: 'DONNIE', lines: ['DRINK UP! WE HAVE TO WALK DOWN', 'TO THE BOOKSTORE. WE OPEN IT', 'TODAY - FOR YOUR 44TH BIRTHDAY.'] },
+  { who: 'SCARLETT', lines: ['MOM! GUESS WHAT? WE ALL MADE', 'HONOR ROLL ON OUR REPORT CARDS!'] },
+  { who: 'HANK', lines: ['AND WE KEPT OUR ROOMS CLEAN.', 'REALLY CLEAN. YOU CAN CHECK!'] },
+  { who: 'RAMONA', lines: ['WE EVEN SCRUBBED THE BATHROOMS!', 'THEY SPARKLE LIKE THE OCEAN.'] },
+  { who: 'DR. RAVEN', lines: ['I LOVE MY FAMILY SO MUCH.', 'I AM SO THANKFUL FOR MY', 'AMAZING HUSBAND...'] },
+  { who: 'DR. RAVEN', lines: ['...WHO CREATED THIS INCREDIBLE', 'GIFT FOR MY BIRTHDAY.', 'BEST. BIRTHDAY. EVER.'] },
+];
+const PERFECT_WHO_COLORS = {
+  'DR. RAVEN': '#c9599e', 'DONNIE': '#2e8fd0',
+  'SCARLETT': '#e8862e', 'HANK': '#3fae6a', 'RAMONA': '#8a5fc9',
+};
+let pfPhase = 0, pfChars = 0, pfDonnieT = 0, pfConfetti = null;
+function startPerfect() {
+  G.state = 'perfect'; G.stateT = 0; G.shake = 0;
+  pfPhase = 0; pfChars = 0; pfDonnieT = 0; pfConfetti = null;
+  audio.play('happy');
+  audio.tempo(1);
+}
+function pfBoxDone() {
+  return pfChars >= PERFECT_BOXES[pfPhase].lines.join('').length;
+}
+function updatePerfect() {
+  G.frame++;
+  pfChars += 0.9;
+  if (!pfBoxDone() && G.frame % 3 === 0) audio.sfx('type');
+  if (pfPhase >= 2 && pfDonnieT < 60) pfDonnieT++; // Donnie walks in with the coffee
+  if (pressed.Enter) {
+    if (!pfBoxDone()) pfChars = 9999;
+    else if (pfPhase < PERFECT_BOXES.length - 1) {
+      pfPhase++;
+      pfChars = 0;
+      audio.sfx('menu');
+    } else {
+      G.state = 'perfectEnd'; G.stateT = 0;
+      audio.sfx('clear');
+    }
+  }
+}
+function drawPerfect() {
+  ctx.fillStyle = '#bfe8ff'; ctx.fillRect(0, 0, VW, VH);
+  ctx.save();
+  ctx.translate(VW / 2, VH / 2);
+  ctx.scale(1.25, 1.25);
+  ctx.translate(-256, -118);
+
+  // -- the beach-house bedroom, seen from above --
+  // whitewashed plank floor with a sandy warmth
+  for (let y = 0; y < 288; y += 12) {
+    ctx.fillStyle = y % 24 ? '#e8d4a8' : '#f0e0ba';
+    ctx.fillRect(0, y, 512, 12);
+    ctx.fillStyle = '#cdb488'; ctx.fillRect(0, y, 512, 1);
+  }
+  // seafoam rug
+  ctx.fillStyle = '#8fd8c8';
+  ctx.beginPath(); ctx.ellipse(256, 165, 120, 62, 0, 0, 6.29); ctx.fill();
+  ctx.fillStyle = '#b8ecd8';
+  ctx.beginPath(); ctx.ellipse(256, 165, 96, 48, 0, 0, 6.29); ctx.fill();
+  // top wall: white shiplap
+  ctx.fillStyle = '#f4efe4'; ctx.fillRect(0, 0, 512, 38);
+  ctx.fillStyle = '#ddd5c2'; for (let wy = 9; wy < 38; wy += 10) ctx.fillRect(0, wy, 512, 1);
+  // bookshelf — every single book home on its shelf
+  ctx.fillStyle = '#b08d58'; ctx.fillRect(120, 4, 320, 30);
+  for (let row = 0; row < 2; row++) for (let bx = 126; bx < 434; bx += 5) {
+    ctx.fillStyle = BOOK_COLORS[((bx / 5 | 0) + row * 3) % BOOK_COLORS.length];
+    ctx.fillRect(bx, 7 + row * 14, 4, 11);
+  }
+  // window: morning sun over the ocean
+  ctx.fillStyle = '#7ec8f0'; ctx.fillRect(60, 4, 46, 30);
+  ctx.fillStyle = '#2e8fd0'; ctx.fillRect(60, 22, 46, 12);          // sea
+  ctx.fillStyle = 'rgba(255,255,255,.5)'; ctx.fillRect(64, 25, 10, 1); ctx.fillRect(82, 29, 12, 1);
+  ctx.fillStyle = '#ffe45a'; ctx.beginPath(); ctx.arc(83, 14, 7, 0, 6.29); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.fillRect(81, 4, 2, 30); ctx.fillRect(60, 20, 46, 2); // frame
+  ctx.fillStyle = 'rgba(255,230,150,.20)'; ctx.fillRect(52, 38, 70, 130);          // sunbeam
+  // door in the top wall (Donnie comes through it)
+  ctx.fillStyle = '#b08d58'; ctx.fillRect(392, 2, 30, 34);
+  ctx.fillStyle = '#cdaa70'; ctx.fillRect(394, 4, 26, 30);
+  ctx.fillStyle = '#6e5433'; ctx.fillRect(414, 18, 3, 3);
+  // nightstand + a happy lamp
+  ctx.fillStyle = '#b08d58'; ctx.fillRect(312, 70, 26, 28);
+  ctx.fillStyle = 'rgba(255,217,138,.30)';
+  ctx.beginPath(); ctx.arc(325, 78, 20, 0, 6.29); ctx.fill();
+  ctx.fillStyle = '#ffd98a'; ctx.fillRect(321, 74, 8, 8);
+  ctx.drawImage(bookSprite(3, false), 314, 86);
+  // bed
+  ctx.fillStyle = '#e8dcc8'; ctx.fillRect(210, 62, 92, 10);           // whitewashed headboard
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(214, 72, 84, 140);          // mattress
+  ctx.fillStyle = '#fff8ec'; ctx.fillRect(232, 78, 48, 18);           // pillow
+  // Dr. Raven awake and smiling: same pose as the dark ending, sunnier morning
+  ctx.fillStyle = PAL.h; ctx.fillRect(243, 75, 26, 20);
+  ctx.fillStyle = PAL.H; ctx.fillRect(244, 76, 24, 18);
+  ctx.fillRect(238, 80, 6, 11); ctx.fillRect(268, 80, 6, 11);
+  ctx.fillRect(240, 91, 5, 6); ctx.fillRect(267, 91, 5, 6);
+  ctx.fillStyle = PAL.L;
+  ctx.fillRect(246, 77, 3, 9); ctx.fillRect(263, 78, 3, 8); ctx.fillRect(254, 76, 3, 4);
+  ctx.fillStyle = PAL.S;
+  ctx.fillRect(249, 82, 14, 13); ctx.fillRect(250, 81, 12, 1); ctx.fillRect(251, 95, 10, 1);
+  ctx.fillStyle = PAL.h;
+  ctx.fillRect(251, 85, 3, 1); ctx.fillRect(258, 85, 3, 1);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(251, 87, 3, 2); ctx.fillRect(258, 87, 3, 2);
+  ctx.fillStyle = PAL.E;
+  ctx.fillRect(252, 87, 2, 2); ctx.fillRect(259, 87, 2, 2);
+  ctx.fillStyle = '#8a4536'; // big happy smile
+  ctx.fillRect(253, 92, 6, 1); ctx.fillRect(252, 91, 1, 1); ctx.fillRect(259, 91, 1, 1);
+  // coral blanket with sunny stripes
+  ctx.fillStyle = '#ff9a8a'; ctx.fillRect(214, 102, 84, 108);
+  ctx.fillStyle = '#f0806e';
+  for (let by = 110; by < 205; by += 14) ctx.fillRect(214, by, 84, 5);
+  ctx.fillStyle = 'rgba(255,255,255,.20)'; ctx.fillRect(240, 102, 32, 108);
+  // the kids at their mom's bedside (kept above the dialogue box)
+  ctx.drawImage(SPR.scarlett, 176, 100);
+  ctx.drawImage(SPR.hank, 190, 122);
+  ctx.drawImage(SPR.ramona, 176, 142);
+  // Donnie walks in from the door carrying her coffee
+  if (pfPhase >= 2) {
+    const t = pfDonnieT / 60;
+    const dx = Math.round(400 + (312 - 400) * t);
+    const dy = Math.round(40 + (112 - 40) * t);
+    ctx.drawImage(SPR.donnie, dx, dy);
+    // the mug, held out in front
+    ctx.fillStyle = '#fff'; ctx.fillRect(dx - 7, dy + 16, 6, 6);
+    ctx.fillStyle = '#6e4423'; ctx.fillRect(dx - 6, dy + 17, 4, 2);
+    ctx.fillStyle = '#fff'; ctx.fillRect(dx - 9, dy + 18, 2, 3);
+    ctx.fillStyle = 'rgba(255,255,255,.6)'; // steam
+    ctx.fillRect(dx - 5 + Math.round(Math.sin(G.frame * 0.1) * 1.5), dy + 10, 1, 3);
+    ctx.fillRect(dx - 3 + Math.round(Math.sin(G.frame * 0.1 + 2) * 1.5), dy + 8, 1, 3);
+  }
+  // Jack snoozing peacefully on the rug — a good boy in this timeline
+  ctx.drawImage(SPR.jack, 332, 130);
+  ctx.restore();
+
+  // warm daylight vignette instead of dread
+  ctx.fillStyle = 'rgba(255,230,150,.06)';
+  ctx.fillRect(0, 0, VW, VH);
+  // cinematic letterbox
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, VW, 22); ctx.fillRect(0, VH - 22, VW, 22);
+
+  // sunny RPG dialogue boxes
+  const box = PERFECT_BOXES[pfPhase];
+  const bh = 26 + box.lines.length * 16;
+  const by = VH - 30 - bh;
+  ctx.fillStyle = 'rgba(255,252,240,.95)';
+  ctx.fillRect(36, by, VW - 72, bh);
+  ctx.fillStyle = '#ffd23e';
+  ctx.fillRect(36, by, VW - 72, 2); ctx.fillRect(36, by + bh - 2, VW - 72, 2);
+  ctx.fillRect(36, by, 2, bh); ctx.fillRect(VW - 38, by, 2, bh);
+  ctx.fillStyle = '#e8b93e';
+  ctx.fillRect(40, by + 4, VW - 80, 1); ctx.fillRect(40, by + bh - 5, VW - 80, 1);
+  if (box.who) drawText(box.who + ':', 48, by - 8, 1, PERFECT_WHO_COLORS[box.who] || '#2e8fd0', '#fff');
+  let remaining = Math.floor(pfChars);
+  let ty = by + 10;
+  for (const line of box.lines) {
+    if (remaining <= 0) break;
+    drawText(line.slice(0, remaining), 50, ty, 2, '#4a3820');
+    remaining -= line.length;
+    ty += 16;
+  }
+  if (pfBoxDone() && (G.frame >> 4) % 2 === 0) drawText('>', VW - 56, by + bh - 14, 2, '#e8862e');
+}
+function updatePerfectEnd() {
+  G.frame++;
+  if (G.stateT > 60 && pressed.Enter) {
+    G.state = 'ending'; G.stateT = 0; // roll into the library stats screen
+  }
+}
+function drawPerfectEnd() {
+  const f = G.frame;
+  // sky
+  const sky = ctx.createLinearGradient(0, 0, 0, 140);
+  sky.addColorStop(0, '#6ec0f0'); sky.addColorStop(1, '#cfeeff');
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, VW, 140);
+  // sun with a soft glow
+  ctx.fillStyle = 'rgba(255,228,90,.25)'; ctx.beginPath(); ctx.arc(432, 46, 36, 0, 6.29); ctx.fill();
+  ctx.fillStyle = 'rgba(255,228,90,.4)'; ctx.beginPath(); ctx.arc(432, 46, 27, 0, 6.29); ctx.fill();
+  ctx.fillStyle = '#ffe45a'; ctx.beginPath(); ctx.arc(432, 46, 20, 0, 6.29); ctx.fill();
+  // drifting clouds
+  ctx.fillStyle = 'rgba(255,255,255,.85)';
+  for (let i = 0; i < 3; i++) {
+    const cxp = ((i * 190 + f * (0.12 + i * 0.05)) % (VW + 140)) - 70;
+    const cyp = 26 + i * 24;
+    ctx.beginPath();
+    ctx.ellipse(cxp, cyp, 26, 9, 0, 0, 6.29);
+    ctx.ellipse(cxp - 16, cyp + 4, 16, 7, 0, 0, 6.29);
+    ctx.ellipse(cxp + 17, cyp + 4, 18, 7, 0, 0, 6.29);
+    ctx.fill();
+  }
+  // the beach house they woke up in, up on the dune
+  ctx.fillStyle = '#e8d4a8'; ctx.fillRect(0, 128, 130, 14);           // dune
+  ctx.fillStyle = '#f4efe4'; ctx.fillRect(26, 96, 64, 34);            // walls
+  ctx.fillStyle = '#d94436';                                          // roof
+  ctx.beginPath(); ctx.moveTo(18, 98); ctx.lineTo(58, 78); ctx.lineTo(98, 98); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#b08d58'; ctx.fillRect(52, 108, 12, 22);           // door
+  ctx.fillStyle = '#7ec8f0'; ctx.fillRect(32, 104, 12, 10); ctx.fillRect(72, 104, 12, 10); // windows
+  ctx.fillStyle = '#fff'; ctx.fillRect(37, 104, 2, 10); ctx.fillRect(77, 104, 2, 10);
+  // ocean
+  const sea = ctx.createLinearGradient(0, 140, 0, 208);
+  sea.addColorStop(0, '#2e8fd0'); sea.addColorStop(1, '#5ab8e8');
+  ctx.fillStyle = sea; ctx.fillRect(0, 140, VW, 68);
+  for (let r = 0; r < 5; r++) { // rolling white wave crests
+    const wy = 150 + r * 12;
+    const off = (f * (0.35 + r * 0.12) + r * 40) % 64;
+    ctx.fillStyle = 'rgba(255,255,255,' + (0.22 + r * 0.05).toFixed(2) + ')';
+    for (let wx = -64 + off; wx < VW; wx += 64) ctx.fillRect(wx, wy, 24, 2);
+  }
+  // sand
+  ctx.fillStyle = '#d8c088'; ctx.fillRect(0, 208, VW, 9);             // wet line
+  ctx.fillStyle = '#f0dca8'; ctx.fillRect(0, 217, VW, VH - 217);
+  ctx.fillStyle = '#dcc590';
+  for (let i = 0; i < 60; i++) ctx.fillRect((i * 89) % VW, 222 + (i * 37) % 60, 2, 1);
+  // palm tree
+  ctx.fillStyle = '#8a6a3e';
+  for (let s = 0; s < 9; s++) ctx.fillRect(58 + s, 216 - s * 8, 5, 9);
+  ctx.fillStyle = '#3fae6a';
+  for (let a = 0; a < 6; a++) {
+    ctx.save();
+    ctx.translate(70, 144);
+    ctx.rotate(a * 1.05 - 2.6);
+    ctx.beginPath(); ctx.ellipse(16, 0, 17, 5, 0, 0, 6.29); ctx.fill();
+    ctx.restore();
+  }
+  ctx.fillStyle = '#6e4423';
+  ctx.beginPath(); ctx.arc(66, 148, 3, 0, 6.29); ctx.fill();
+  ctx.beginPath(); ctx.arc(74, 150, 3, 0, 6.29); ctx.fill();
+  // beach umbrella + towel
+  ctx.fillStyle = '#b08d58'; ctx.fillRect(408, 168, 3, 52);
+  for (let seg = 0; seg < 5; seg++) {
+    ctx.fillStyle = seg % 2 ? '#fff' : '#d94436';
+    ctx.beginPath();
+    ctx.moveTo(409, 168);
+    ctx.arc(409, 172, 34, Math.PI + seg * 0.63, Math.PI + (seg + 1) * 0.63);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.fillStyle = '#7de8ff'; ctx.fillRect(430, 228, 40, 14);
+  ctx.fillStyle = '#fff'; ctx.fillRect(430, 232, 40, 2); ctx.fillRect(430, 238, 40, 2);
+  // -- everyone together --
+  ctx.drawImage(SPR.gdaddy, 148, 231);
+  ctx.drawImage(SPR.pep, 170, 232);
+  ctx.drawImage(SPR.stand, 224, 218);
+  ctx.drawImage(SPR.donnie, 256, 218);
+  ctx.drawImage(SPR.scarlett, 300, 236);
+  ctx.drawImage(SPR.hank, 316, 237);
+  ctx.drawImage(SPR.ramona, 332, 237);
+  // the raven, swooping happily over the water
+  ctx.drawImage(SPR.raven, Math.round(96 + Math.sin(f * 0.02) * 44), Math.round(96 + Math.sin(f * 0.055) * 9));
+  // Jack the (good) Dog, floating with his birthday balloons
+  const jx = 342, jy = Math.round(84 + Math.sin(f * 0.04) * 7);
+  ctx.strokeStyle = 'rgba(70,60,80,.8)'; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(jx + 4, jy - 18); ctx.lineTo(jx + 10, jy + 6);
+  ctx.moveTo(jx + 12, jy - 26); ctx.lineTo(jx + 12, jy + 6);
+  ctx.moveTo(jx + 20, jy - 18); ctx.lineTo(jx + 14, jy + 6);
+  ctx.stroke();
+  ctx.fillStyle = '#ff5a5a'; ctx.beginPath(); ctx.arc(jx + 4, jy - 24, 6, 0, 6.29); ctx.fill();
+  ctx.fillStyle = '#ffd23e'; ctx.beginPath(); ctx.arc(jx + 12, jy - 33, 7, 0, 6.29); ctx.fill();
+  ctx.fillStyle = '#7de8ff'; ctx.beginPath(); ctx.arc(jx + 20, jy - 24, 6, 0, 6.29); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.5)';
+  ctx.fillRect(jx + 2, jy - 27, 2, 2); ctx.fillRect(jx + 10, jy - 36, 2, 2); ctx.fillRect(jx + 18, jy - 27, 2, 2);
+  ctx.drawImage(SPR.jack, jx, jy);
+  // confetti
+  if (!pfConfetti) {
+    pfConfetti = [];
+    const rnd = RNG(0x44);
+    for (let i = 0; i < 44; i++) pfConfetti.push({
+      x: rnd() * VW, y: rnd() * VH, v: 0.4 + rnd() * 0.8,
+      ph: rnd() * 6.28, c: BOOK_COLORS[i % BOOK_COLORS.length],
+    });
+  }
+  for (const cf of pfConfetti) {
+    cf.y += cf.v; if (cf.y > VH) { cf.y = -4; cf.x = (cf.x + 120) % VW; }
+    ctx.fillStyle = cf.c;
+    ctx.fillRect(Math.round(cf.x + Math.sin(f * 0.05 + cf.ph) * 6), Math.round(cf.y), 3, 3);
+  }
+  // the message
+  drawTextC('THE END.', VW / 2, 24, 4, '#ffd23e', '#6e2a10');
+  drawTextC('HAPPY 44TH BIRTHDAY, DR. RAVEN!', VW / 2, 58, 2, '#fff', '#c9599e');
+  if (G.stateT > 60 && (G.frame >> 4) % 2 === 0) drawTextC('PRESS ENTER', VW / 2, 272, 1, '#4a3820');
+}
+
 // ---------------------------------------------------------- level select
 function selectableLevelCount() {
   return finalBattleUnlocked() ? LVL_META.length : LVL_META.length - 1;
@@ -3348,6 +3657,8 @@ function step() {
     case 'select': updateSelect(); break;
     case 'map': updateMap(); break;
     case 'cutscene': updateCutscene(); break;
+    case 'perfect': updatePerfect(); break;
+    case 'perfectEnd': updatePerfectEnd(); break;
     case 'intro': updateIntro(); break;
     case 'play': updatePlay(); break;
     case 'inv': updateInv(); break;
@@ -3364,6 +3675,8 @@ function render() {
     case 'select': drawSelect(); break;
     case 'map': drawMap(); break;
     case 'cutscene': drawCutscene(); break;
+    case 'perfect': drawPerfect(); break;
+    case 'perfectEnd': drawPerfectEnd(); break;
     case 'intro': drawIntro(); break;
     case 'play': drawWorld(); drawHUD(); drawPowerDrama(); break;
     case 'inv': drawInventory(); break;
@@ -3376,4 +3689,8 @@ function render() {
 // try to start audio right away — browsers that trust this site (or have autoplay
 // enabled) get title music on load; everyone else gets it on their first key/click
 audio.unlock();
+// preview hooks: open index.html#perfect to watch the perfect ending without
+// collecting all 1,026 books first, or index.html#beach to jump to its finale
+if (location.hash === '#perfect') startPerfect();
+else if (location.hash === '#beach') { G.state = 'perfectEnd'; G.stateT = 0; audio.play('happy'); }
 requestAnimationFrame(loop);
