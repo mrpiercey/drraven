@@ -1,4 +1,6 @@
-# DR. RAVEN — The Time-Traveling Bookworm
+# The Adventures of Dr. Raven
+
+## The Time Traveling Bookworm
 
 A 16-bit-style side-scrolling platformer. Dr. Raven, psychologist and book
 collector, is blasted 44 years into the past by Jack the Dog's time machine. She races
@@ -38,6 +40,10 @@ Or open `index.html` in any browser. No build, no server needed.
 | ENTER | Throw a collected book — or open the door when standing at it / confirm |
 | TAB | Inventory (every book collected) |
 | M | Mute music |
+
+On phones and tablets, the game automatically switches to touch controls:
+a four-way direction pad, separate **JUMP** and **ACTION** buttons for
+simultaneous movement, plus **BOOKS** and **SOUND** buttons.
 
 ## Story
 

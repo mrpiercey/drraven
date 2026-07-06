@@ -1,5 +1,5 @@
 /* ============================================================
-   DR. RAVEN — The Quest for 1,026 Books
+   THE ADVENTURES OF DR. RAVEN — The Time Traveling Bookworm
    A retro side-scrolling platformer.
    Collect every book Dr. Raven has read in the past 20 years.
    Madeleine L'Engle books grant SUPER READER power.
@@ -11,14 +11,22 @@ const cvs = document.getElementById('game');
 const ctx = cvs.getContext('2d');
 ctx.imageSmoothingEnabled = false;
 const VW = 512, VH = 288;
+const touchControls = document.getElementById('touch-controls');
+const touchUI = !!touchControls && (
+  matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0
+);
+document.documentElement.classList.toggle('touch-ui', touchUI);
 
 function fitCanvas() {
   // fill as much of the window as possible while keeping the aspect ratio
-  const s = Math.max(1, Math.min(innerWidth / VW, (innerHeight - 26) / VH) * 0.99);
+  const controlsH = touchUI ? touchControls.getBoundingClientRect().height : 26;
+  const availableH = Math.max(120, innerHeight - controlsH);
+  const s = Math.max(0.35, Math.min(innerWidth / VW, availableH / VH) * 0.98);
   cvs.style.width = Math.round(VW * s) + 'px';
   cvs.style.height = Math.round(VH * s) + 'px';
 }
 addEventListener('resize', fitCanvas); fitCanvas();
+if (window.visualViewport) window.visualViewport.addEventListener('resize', fitCanvas);
 
 // ---------------------------------------------------------- input
 const keys = {};
@@ -621,6 +629,51 @@ const audio = (() => {
     },
   };
 })();
+
+// Touch devices get multi-touch controls that feed the same input state as
+// the keyboard. Pointer capture prevents held directions from getting stuck.
+if (touchUI) {
+  const touchPointers = new Map();
+  const keyFor = btn => btn.dataset.key === 'Space' ? ' ' : btn.dataset.key;
+  const releasePointer = pointerId => {
+    const active = touchPointers.get(pointerId);
+    if (!active) return;
+    touchPointers.delete(pointerId);
+    const stillHeld = [...touchPointers.values()].some(item => item.key === active.key);
+    if (!stillHeld) keys[active.key] = false;
+    const sameButtonHeld = [...touchPointers.values()].some(item => item.btn === active.btn);
+    if (!sameButtonHeld) {
+      active.btn.classList.remove('is-pressed');
+      active.btn.setAttribute('aria-pressed', 'false');
+    }
+  };
+  const releaseAllTouch = () => {
+    for (const pointerId of [...touchPointers.keys()]) releasePointer(pointerId);
+  };
+  for (const btn of touchControls.querySelectorAll('[data-key]')) {
+    btn.setAttribute('aria-pressed', 'false');
+    btn.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      const key = keyFor(btn);
+      if (!keys[key]) pressed[key] = true;
+      keys[key] = true;
+      touchPointers.set(e.pointerId, { btn, key });
+      if (btn.setPointerCapture) btn.setPointerCapture(e.pointerId);
+      btn.classList.add('is-pressed');
+      btn.setAttribute('aria-pressed', 'true');
+      if (key === 'm') audio.toggleMute();
+      audio.unlock();
+    });
+    btn.addEventListener('pointerup', e => { e.preventDefault(); releasePointer(e.pointerId); });
+    btn.addEventListener('pointercancel', e => releasePointer(e.pointerId));
+    btn.addEventListener('lostpointercapture', e => releasePointer(e.pointerId));
+    btn.addEventListener('contextmenu', e => e.preventDefault());
+  }
+  addEventListener('blur', releaseAllTouch);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) releaseAllTouch();
+  });
+}
 
 // ---------------------------------------------------------- book data & levels
 const LVL_META = [
@@ -2691,9 +2744,10 @@ function drawTitle() {
     drawText('DR.', x0, y, sc, color, outline);
     drawText('RAVEN', x0 + w1 + gap, y, sc, color, outline);
   };
+  drawTextC('THE ADVENTURES OF', VW / 2, 37 + bob, 2, '#7de8ff', '#000');
   drawLogo(VW / 2 + 3, 52 + bob + 3, 6, '#000');
   drawLogo(VW / 2, 52 + bob, 6, '#ffd23e', '#6e2a10');
-  drawTextC('THE TIME-TRAVELING BOOKWORM', VW / 2, 92 + bob, 2, '#ffb0d8', '#000');
+  drawTextC('THE TIME TRAVELING BOOKWORM', VW / 2, 92 + bob, 2, '#ffb0d8', '#000');
   drawTextC('44 YEARS. 1,026 BOOKS. ONE PSYCHOLOGIST.', VW / 2, 106 + bob, 1, '#c9b8ec', '#000');
   // Birthday banner — angled like a party sticker and gently zooming in and out.
   const birthdayPulse = 1 + Math.sin(G.frame * 0.08) * 0.12;
