@@ -592,7 +592,7 @@ const audio = (() => {
       ac = new (window.AudioContext || window.webkitAudioContext)();
       musicTimer = setInterval(schedule, 40);
     }
-    if (ac.state === 'suspended') ac.resume();
+    if (ac.state === 'suspended') ac.resume().catch(() => {});
   }
   const f = n => 440 * Math.pow(2, (n - 69) / 12);
   function osc(type, freq, t0, dur, vol, slide) {
@@ -623,6 +623,9 @@ const audio = (() => {
   }
   function schedule() {
     if (!ac || !currentSong || muted) return;
+    // while the browser holds the context suspended (autoplay policy), keep asking —
+    // the moment it's allowed, the song starts without waiting for our gesture handlers
+    if (ac.state !== 'running') { ac.resume().catch(() => {}); return; }
     const song = SONGS[currentSong];
     const stepDur = (60 / (song.bpm * tempoMul)) / 2; // 8th notes
     if (nextNoteT < ac.currentTime) nextNoteT = ac.currentTime + .05;
@@ -639,6 +642,7 @@ const audio = (() => {
     unlock: ensure,
     toggleMute() { muted = !muted; },
     get muted() { return muted; },
+    get running() { return !!ac && ac.state === 'running'; },
     play(name) { currentSong = name; songStep = 0; nextNoteT = 0; },
     stop() { currentSong = null; },
     tempo(m) { tempoMul = m; },
@@ -3089,6 +3093,7 @@ function drawTitle() {
   drawTextC("MADELEINE L'ENGLE BOOKS GRANT SUPER READER POWER!", VW / 2, 210, 1, '#ffd23e');
 
   drawTextC('ARROWS/WASD: MOVE  SPACE: JUMP  ENTER: THROW & DOORS  TAB: BOOKS', VW / 2, 234, 1, '#8a76b4');
+  if (!audio.running && (G.frame >> 4) % 2 === 0) drawTextC('~ CLICK OR PRESS ANY KEY FOR MUSIC ~', VW / 2, 222, 1, '#7de8ff', '#000');
   if ((G.frame >> 5) % 2 === 0) drawTextC('PRESS ENTER', VW / 2, 254, 2, '#fff', '#000');
   drawTextC('(C) 2026 RAVENSOFT - 16-BIT THERAPY DIVISION', VW / 2, 276, 1, '#6b5a8c');
 }
@@ -3261,4 +3266,7 @@ function render() {
     case 'ending': drawEnding(); break;
   }
 }
+// try to start audio right away — browsers that trust this site (or have autoplay
+// enabled) get title music on load; everyone else gets it on their first key/click
+audio.unlock();
 requestAnimationFrame(loop);
