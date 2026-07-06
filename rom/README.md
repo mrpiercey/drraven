@@ -26,58 +26,68 @@ Finder open:
 \\RETROPIE\roms\ports\        (or \\<pi-ip-address>\roms\ports\ )
 ```
 
-Copy **both** of these into that `ports` folder, side by side:
+Copy these **four items** into that `ports` folder, side by side:
 
 - the file `Dr Raven.sh`
-- the folder `drraven/`   (and `kiosk.sh` too, if copying by hand)
+- the file `kiosk.sh`
+- the file `encoder-map.py`
+- the folder `drraven/`
 
-Result on disk: `~/RetroPie/roms/ports/Dr Raven.sh`,
-`~/RetroPie/roms/ports/kiosk.sh`, and `~/RetroPie/roms/ports/drraven/…`.
+Result on disk:
+```
+~/RetroPie/roms/ports/Dr Raven.sh
+~/RetroPie/roms/ports/kiosk.sh
+~/RetroPie/roms/ports/encoder-map.py
+~/RetroPie/roms/ports/drraven/index.html   (+ game.js, books.js)
+```
 Restart EmulationStation → it appears under **Ports → Dr Raven**.
 
+Do **not** copy `install.sh` or `README.md` into `ports/` — `install.sh` would
+show up as a second fake "game" in the menu.
+
 Easier: copy this whole `rom/` folder to the Pi and run `bash install.sh` — it
-copies the files AND installs Chromium + AntiMicroX for you.
+copies the files AND installs everything below for you.
 
-## Your arcade encoder (EG STARTS / Zero-Delay USB)
+## Your arcade encoder (EG STARTS / Zero-Delay USB) — works out of the box
 
-That board shows up to the Pi as a **USB joystick/gamepad**, not a keyboard. The
-game only listens to the keyboard, so it needs a joystick→keyboard translator.
-The launcher starts **AntiMicroX** automatically for exactly this. You do a
-**one-time** mapping so AntiMicroX knows which physical button = which game key.
+That board shows up to the Pi as a **USB joystick/gamepad**, not a keyboard, and
+the game only listens to the keyboard. So the launcher runs a small built-in
+bridge (`encoder-map.py`) that reads the encoder and types the right keys. It is
+**preconfigured with sensible defaults — no setup, no mapping session.** Just
+open the game and play.
 
-### Keys the game expects
+### Default button layout
 
-| Game action        | Keyboard key to map to |
-|--------------------|------------------------|
-| Move               | Arrow Up/Down/Left/Right |
-| Jump               | `Space`                |
-| Throw books / doors| `Enter`                |
-| Inventory          | `Tab`                  |
-| Mute               | `M`                    |
+| Arcade control        | Does (game key) |
+|-----------------------|-----------------|
+| Joystick              | Move (arrow keys) |
+| Button 1              | Jump (`Space`) |
+| Button 2              | Throw books / open doors (`Enter`) |
+| Button 3              | Inventory (`Tab`) |
+| Button 4              | Mute (`M`) |
+| Button 5              | Jump (spare) |
+| Button 6              | Throw (spare) |
+| Start button          | Confirm / advance intro (`Enter`) |
+| **Start + Coin together** | **Quit back to the arcade menu** |
 
-(Typing `ramona` on any level = no heart loss for that level.)
+"Button 1…6" = the order the button headers sit on the encoder board. (Typing
+`ramona` on any level = no heart loss for that level.)
 
-### One-time mapping steps
+### If a button feels wrong
 
-1. Plug a keyboard+mouse into the cabinet (or SSH in with X forwarding). From
-   the RetroPie menu open **RetroPie → Raspbian / desktop**, or from a terminal
-   run `startx` then open a terminal.
-2. Run `antimicrox`. It auto-detects the encoder (e.g. "DragonRise… USB
-   Joystick"). If you have a 4-player kit, each player is a separate device tab.
-3. For each control: click the on-screen slot, press the real arcade
-   button/joystick direction, and assign it the matching key from the table
-   above (joystick up = Arrow Up, your jump button = Space, etc.).
-4. **Save the profile** to exactly this path:
-   `~/RetroPie/roms/ports/drraven/controls.amgp`
-5. Done. Next time you open **Ports → Dr Raven**, the launcher auto-loads that
-   profile and your buttons drive the game. (No profile there yet? The game
-   still boots; buttons just won't respond until you save one.)
+Only if the physical buttons don't line up the way you like: open
+`~/RetroPie/roms/ports/encoder-map.py` and change the `KEY_*` values in the
+labelled `BUTTONS` block — each line says which button it is. Save, relaunch,
+done. (Requires `python3-evdev`: `sudo apt install -y python3-evdev`.)
+
+Prefer a point-and-click mapper instead? Install `antimicrox`, build a profile
+in its GUI, and save it as `~/RetroPie/roms/ports/drraven/controls.amgp`. If
+that file exists the launcher uses it instead of the built-in bridge.
 
 ## Exiting back to EmulationStation
 
-Chromium kiosk quits with **Alt+F4**. On the cabinet, map a button combo to
-`Alt+F4` in AntiMicroX (or add an `F4` key to a spare button) as a "quit"
-control. When Chromium closes, X tears down and you drop back to the Ports menu.
+Press **Start + Coin together** on the cabinet to quit — that drops you back to
+the Ports menu. (With a keyboard attached, **Alt+F4** also works.)
 
 ## Notes
 
@@ -87,8 +97,6 @@ control. When Chromium closes, X tears down and you drop back to the Ports menu.
 - Chromium runs under a throwaway profile (`~/.config/drraven-kiosk`), so it
   never touches other browser settings and won't nag about "restore pages"
   after a hard power-off.
-- If `antimicrox` isn't found, install it with `sudo apt install -y antimicrox`
-  (older images may only have `antimicro` — same idea, slightly different UI).
-- Prefer a zero-GUI, preconfigured mapping instead of AntiMicroX? Ask me and I
-  can add a small headless joystick→keyboard script with sensible defaults for
-  this encoder.
+- The encoder bridge needs `python3-evdev` and runs under `sudo` (it creates a
+  virtual keyboard via `uinput`). `install.sh` sets this up; RetroPie's `pi`
+  user already has passwordless sudo.

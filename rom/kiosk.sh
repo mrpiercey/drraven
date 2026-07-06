@@ -10,6 +10,13 @@
 GAMEDIR="$GAMEROOT/drraven"
 PROFILE="$GAMEDIR/controls.amgp"   # created once via the AntiMicroX GUI (see README)
 
+# Stop whichever encoder->keyboard mapper we started. The headless bridge runs
+# under sudo, so its Python child needs sudo to kill.
+stop_mapper() {
+  [ -n "$MAP_PID" ] && kill "$MAP_PID" 2>/dev/null
+  sudo pkill -f encoder-map.py 2>/dev/null
+}
+
 # Don't let the arcade go to sleep mid-game.
 xset -dpms
 xset s off
@@ -17,17 +24,20 @@ xset s noblank
 
 # --- arcade encoder -> keyboard -------------------------------------------
 # The EG STARTS / Zero-Delay board shows up as a USB joystick. The game only
-# reads the keyboard, so AntiMicroX maps joystick -> keys. It loads a saved
-# profile if one exists; otherwise it starts unmapped so you can build one.
-AM_PID=""
-if command -v antimicrox >/dev/null 2>&1; then
-  if [ -f "$PROFILE" ]; then
-    antimicrox --hidden --profile "$PROFILE" &
-  else
-    antimicrox --hidden &
-  fi
-  AM_PID=$!
-  sleep 1   # give it a moment to grab the joystick before the game starts
+# reads the keyboard, so we translate joystick -> keys. Two ways, in order:
+#   1. If you saved an AntiMicroX profile (controls.amgp), use that (GUI setup).
+#   2. Otherwise use the built-in headless bridge with sensible defaults — this
+#      is the zero-setup path: it just works, no mapping session required.
+MAP_PID=""
+if command -v antimicrox >/dev/null 2>&1 && [ -f "$PROFILE" ]; then
+  antimicrox --hidden --profile "$PROFILE" &
+  MAP_PID=$!
+  sleep 1
+elif command -v python3 >/dev/null 2>&1 && [ -f "$GAMEROOT/encoder-map.py" ]; then
+  # needs root for the virtual keyboard (uinput); RetroPie's pi user has sudo
+  sudo python3 "$GAMEROOT/encoder-map.py" &
+  MAP_PID=$!
+  sleep 1
 fi
 
 # --- the game -------------------------------------------------------------
@@ -35,7 +45,7 @@ CHROMIUM="$(command -v chromium-browser || command -v chromium)"
 if [ -z "$CHROMIUM" ]; then
   xmessage -center "Chromium is not installed. Run: sudo apt install -y chromium-browser" 2>/dev/null
   sleep 6
-  [ -n "$AM_PID" ] && kill "$AM_PID" 2>/dev/null
+  stop_mapper
   exit 1
 fi
 
@@ -55,4 +65,4 @@ fi
   --no-first-run
 
 # Chromium closed (Alt+F4 / mapped quit button) -> clean up and return to ES.
-[ -n "$AM_PID" ] && kill "$AM_PID" 2>/dev/null
+stop_mapper
