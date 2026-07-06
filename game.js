@@ -1669,7 +1669,7 @@ function updatePlay() {
         e.alive = false; pr.dead = true;
         audio.sfx('pop');
         spawnBurst(e.x, e.y, '#ffffff', 12, 2.5);
-        addPopup('BONK!', e.x, e.y - 14, '#ffe45a');
+        addPopup("I'VE BEEN BY HERE TONIGHT!", e.x, e.y - 14, '#ffe45a');
         break;
       }
     }
