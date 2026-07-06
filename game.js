@@ -57,6 +57,8 @@ addEventListener('keyup', e => {
   if (e.key === 'Meta') for (const k of ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' ']) keys[k] = false;
 });
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+// browsers gate audio behind a user gesture — a click/tap should start the title music too
+addEventListener('pointerdown', () => audio.unlock());
 
 // ---------------------------------------------------------- RNG (seeded)
 function RNG(seed) {
@@ -564,6 +566,11 @@ const audio = (() => {
   let ac = null, muted = false, musicTimer = null;
   let songStep = 0, nextNoteT = 0, currentSong = null, tempoMul = 1;
   const SONGS = {
+    theme: { // gothic lullaby — a raven circling the library at bedtime (landing page only)
+      bpm: 80,
+      lead: [69,0,0,71,72,0,71,69,68,0,64,0,0,0,64,67,65,0,0,67,69,0,65,62,64,0,60,0,59,0,0,0],
+      bass: [33,0,40,0,45,0,40,0,28,0,35,0,40,0,35,0,26,0,33,0,38,0,33,0,28,0,35,0,40,0,44,0],
+    },
     title: {
       bpm: 92,
       lead: [64,0,67,0,71,0,69,67,64,0,62,0,60,0,62,64,60,0,64,0,67,0,71,72,71,0,67,0,64,0,0,0],
@@ -2893,7 +2900,7 @@ function openLevelSelect() {
   G.state = 'select';
   G.stateT = 0;
   G.selIdx = 0;
-  audio.play('title');
+  audio.stop(); // landing-page theme ends once the player heads for a level
   audio.tempo(1);
   audio.sfx('menu');
 }
@@ -2910,7 +2917,7 @@ function updateSelect() {
   }
   if (pressed.Tab || pressed.Escape) {
     G.state = 'title'; G.menuSel = 0; G.stateT = 0; G.levelSelectRun = false;
-    audio.play('title');
+    audio.play('theme');
   }
 }
 function drawSelect() {
@@ -2944,7 +2951,7 @@ function titleOptions(save) {
 }
 function updateTitle() {
   G.frame++;
-  if (!titleMusicStarted && G.frame > 5) { audio.play('title'); titleMusicStarted = true; }
+  if (!titleMusicStarted && G.frame > 5) { audio.play('theme'); titleMusicStarted = true; }
   if (G.saveCache === undefined || G.saveCache === null) G.saveCache = loadSave() || false;
   const opts = titleOptions(G.saveCache);
   const nOpts = opts.length;
@@ -3016,7 +3023,7 @@ function updateEnding() {
   G.frame++; updateFx();
   if (G.stateT > 60 && pressed.Enter) {
     G.state = 'title'; G.menuSel = 0; G.saveCache = null; G.levelSelectRun = false;
-    audio.play('title');
+    audio.play('theme');
   }
 }
 
