@@ -417,6 +417,113 @@ const PEP_SPR = [ // dark brown hair to her shoulders, blue dress, a little shor
   '...S....S...',
   '...F....F...',
 ];
+// CC & Uncle B (Auburn rescue) — both decked out in orange & blue
+const CC_SPR = [
+  '..hhhhhhhh..',
+  '.hhhhhhhhhh.',
+  '.hhSSSSSShh.',
+  '.hhSeSSeShh.',
+  '.hhSSSSSShh.',
+  '.hhSmmmmShh.',
+  '.hhhSSSShhh.',
+  '..OOOOOOOO..',
+  '.OOOOOOOOOO.',
+  '..SJJJJJJS..',
+  '..JJJJJJJJ..',
+  '.JJJJJJJJJJ.',
+  '.JJJJJJJJJJ.',
+  '...S....S...',
+  '...F....F...',
+];
+const UNCLEB_SPR = [
+  '...hhhhhhhh...',
+  '..hhhhhhhhhh..',
+  '..hSSSSSSSSh..',
+  '..hSeSSSSeSh..',
+  '..hSSSSSSSSh..',
+  '..hSSmmmmSSh..',
+  '...SSSSSSSS...',
+  '..JJJJJJJJJJ..',
+  '.JJOOOOOOOOJJ.',
+  '.JJOOOOOOOOJJ.',
+  '.SJJOOOOOOJJS.',
+  '..JJJJJJJJJJ..',
+  '..KKKK..KKKK..',
+  '..KKKK..KKKK..',
+  '..KKKK..KKKK..',
+  '..FFFF..FFFF..',
+];
+// Butter & Bacon — the dachshunds (one art, two coats)
+const DOXIE_SPR = [
+  '.BB.............',
+  'BBBB.........B..',
+  'BeBBBBBBBBBBBB..',
+  'BnBBBBBBBBBBB...',
+  '.BBBBBBBBBBBB...',
+  '..B..B....B..B..',
+  '..F..F....F..F..',
+];
+// a Wilmore horse at full gallop (the B- in Horseback Riding never forgave her)
+const HORSE_SPR = [
+  '.MHH................',
+  'MHHHH...............',
+  'MHeHH...............',
+  'MHHHH...............',
+  '.HHHHMM.............',
+  '.HHHBBBBBBBBBBBM....',
+  '..HBBBBBBBBBBBBBM...',
+  '...BBBBBBBBBBBBBM...',
+  '...BBB.BBB.BB.BBM...',
+  '...BB...BB.BB..BB...',
+  '...FF...FF.FF..FF...',
+];
+// a crimson elephant loose in Auburn (it will not be missed)
+const ELEPHANT_SPR = [
+  '...RRRRRRRRRRRR.....',
+  '..RRRRRRRRRRRRRR....',
+  '.RReRRDDDDDRRRRRR...',
+  'tRRRRRDDDDDDRRRRr...',
+  'tRRRRRDDDDDDRRRrr...',
+  '.tRRRRDDDDDRRRRRR...',
+  '.ttRRRRRRRRRRRRRR...',
+  '..tWRRRRRRRRRRRR....',
+  '...RRR..RRR..RRR....',
+  '...RRR..RRR..RRR....',
+  '...DDD..DDD..DDD....',
+];
+// a UK med student, white coat and scrubs, full of questions
+const STUDENT_SPR = [
+  '...hhhhhh...',
+  '..hhhhhhhh..',
+  '..hSSSSSSh..',
+  '..hSeSSeSh..',
+  '..hSSSSSSh..',
+  '..hSSmmSSh..',
+  '...SSSSSS...',
+  '..WWWWWWWW..',
+  '.WWGGGGGGWW.',
+  '.WWGGGGGGWW.',
+  '.SWGGGGGGWS.',
+  '.WWGGGGGGWW.',
+  '..WWWWWWWW..',
+  '...GG..GG...',
+  '...GG..GG...',
+  '...FF..FF...',
+];
+// a gulf-coast jellyfish, pulsing along
+const JELLY_SPR = [
+  '....pppppp....',
+  '..pppppppppp..',
+  '.ppWWpppppppp.',
+  '.ppWppppppppp.',
+  '.pppppppppppp.',
+  '..pppppppppp..',
+  '..u.u.u..u.u..',
+  '..u.u.u..u.u..',
+  '...u.u.u.u....',
+  '..u.u.u..u.u..',
+  '...u...u..u...',
+];
 // Donnie — the world's greatest husband, in his wedding suit
 const DONNIE_SPR = [
   '.......kkkkkkkkk........',
@@ -551,6 +658,34 @@ const SPR = {
   pep: makeSprite(PEP_SPR, {
     h: '#4a3626', e: '#5a3a26', m: '#c46a6a',
     B: '#3f6fb5', F: '#26262b',
+  }),
+  cc: makeSprite(CC_SPR, {
+    h: '#6a4a2a', e: '#4e7a9a', m: '#c46a6a',
+    O: '#e8862e', J: '#2c4f8a', F: '#26262b',
+  }),
+  uncleb: makeSprite(UNCLEB_SPR, {
+    h: '#3a2a1c', e: '#5a3a26', m: '#c46a6a',
+    J: '#2c4f8a', O: '#e8862e', K: '#3a3a44', F: '#26262b',
+  }),
+  butter: makeSprite(DOXIE_SPR, {
+    B: '#d9a516', e: '#26262b', n: '#26262b', F: '#8a6a0e',
+  }),
+  bacon: makeSprite(DOXIE_SPR, {
+    B: '#3a2114', e: '#e8d0a0', n: '#111', F: '#241208',
+  }),
+  horse: makeSprite(HORSE_SPR, {
+    H: '#8a5a2e', B: '#8a5a2e', M: '#4a2e18', e: '#26262b', F: '#3a2412',
+  }),
+  elephant: makeSprite(ELEPHANT_SPR, {
+    R: '#a51c30', D: '#7d1522', t: '#8a1522', r: '#8a1522',
+    e: '#fff', W: '#f2e9d8',
+  }),
+  student: makeSprite(STUDENT_SPR, {
+    h: '#4a3626', e: '#26262b', m: '#c46a6a',
+    W: '#f4f4f8', G: '#3aa8a0', F: '#26262b',
+  }),
+  jelly: makeSprite(JELLY_SPR, {
+    p: '#f08ad0', W: '#ffd0ee', u: '#c46ad8',
   }),
 };
 SPR.jackHurt = tinted(SPR.jack, '#ff4040', .5);
@@ -877,7 +1012,7 @@ const TOTAL_LENGLE = BOOKS.filter(b => b.le).length;
 
 // ---------------------------------------------------------- save
 const SAVE_KEY = 'drraven-save-v3';
-const CAGE_LEVELS = [0, 6]; // G-Daddy & Pep's kennel (L1), the kids' cage (L7)
+const CAGE_LEVELS = [0, 2, 6]; // G-Daddy & Pep (L1), CC & Uncle B + dogs (L3), the kids (L7)
 function loadSave() {
   try {
     const s = JSON.parse(localStorage.getItem(SAVE_KEY));
@@ -923,6 +1058,7 @@ function writeSave() {
 
 // ---------------------------------------------------------- game state
 const TILE = 16, GRAV = 0.38, JUMPV = -7.6, LEVEL_TIME = 120;
+const MAX_HEARTS = 5; // Dr. Raven runs on coffee: five cups of health
 const LEVEL_START_MINUTE = 18 * 60; // 6:00 PM; one game minute per real second
 function formatLevelClock(remaining) {
   const elapsed = Math.max(0, Math.min(LEVEL_TIME, LEVEL_TIME - remaining));
@@ -939,7 +1075,7 @@ const G = {
   completedLevels: new Set(), // levels finished, including out of order
   runSet: new Set(),      // this level attempt
   order: [],              // collect order for inventory
-  hearts: 3,
+  hearts: MAX_HEARTS,
   rescued: new Set(),     // cage levels where the family was freed
   ramona: false, // heart-loss immunity for the current level only
   time: LEVEL_TIME,
@@ -1088,10 +1224,16 @@ function genLevel(idx) {
   // enemies
   const enemies = [];
   const eCount = Math.round(5 + idx * 1.7 + n / 45);
-  const types = ['blot', 'env', 'moth'];
+  // hometown hazards: jellyfish on the gulf beach, horses in Wilmore, crimson
+  // elephants in Auburn, question-hungry med students at UK Medical School
+  const types = idx === 0 ? ['blot', 'jelly', 'moth', 'jelly']
+    : idx === 1 ? ['blot', 'horse', 'moth', 'horse']
+    : idx === 2 ? ['blot', 'elephant', 'moth', 'elephant']
+    : idx === 5 ? ['blot', 'student', 'moth', 'student']
+    : ['blot', 'env', 'moth'];
   for (let k = 0; k < eCount; k++) {
     const ex = 420 + (widthPx - 750) * (k / Math.max(1, eCount - 1)) + (rnd() - .5) * 120;
-    const type = types[Math.floor(rnd() * 3)];
+    const type = types[Math.floor(rnd() * types.length)];
     const col = Math.max(0, Math.min(cols - 1, Math.floor(ex / TILE)));
     const gy = ground[col] != null ? ground[col] * TILE : 256;
     enemies.push({
@@ -1099,6 +1241,7 @@ function genLevel(idx) {
       x: ex, y: 0, t: rnd() * 200, alive: true,
       speed: 1 + idx * 0.07,
       st: 'hover', sx: 0, sy: 0, cool: 0,
+      dir: rnd() < 0.5 ? -1 : 1, // ground enemies patrol
     });
   }
 
@@ -1118,10 +1261,13 @@ function genLevel(idx) {
 
   // level 7: the kids locked in Jack's cage by the door
   // level 1 (Loxley): G-Daddy & Pep — Dr. Raven's parents — in a kennel at the end
+  // level 3 (Auburn): CC & Uncle B with their dachshunds, Butter & Bacon
   const cage = idx === 6
     ? { x: widthPx - 160, y: 256 - 32, w: 46, h: 32, open: false }
     : idx === 0
     ? { x: widthPx - 160, y: 256 - 32, w: 46, h: 32, open: false, parents: true }
+    : idx === 2
+    ? { x: widthPx - 160, y: 256 - 32, w: 60, h: 32, open: false, auburn: true }
     : null;
 
   // level 4 (the wedding): Donnie appears once Jack is beaten
@@ -1422,7 +1568,7 @@ function startLevel(idx, freshHearts) {
   G.time = LEVEL_TIME;
   G.superT = 0;
   G.powerBannerT = 0; G.powerFlashA = 0; G.powerLightningT = 0; G.powerBookTitle = '';
-  if (freshHearts) G.hearts = 3;
+  if (freshHearts) G.hearts = MAX_HEARTS;
   G.ramona = false; // the cheat never carries over — retype it each level
   L = genLevel(idx);
   P.x = 60; P.y = 180; P.vx = 0; P.vy = 0;
@@ -1486,6 +1632,32 @@ function beginReadingBreak() {
   G.state = 'dead'; G.stateT = 0;
   audio.stop(); audio.sfx('gameover');
 }
+// themed defeat quips — Wilmore's horses answer for the B- in Horseback
+// Riding; Auburn's crimson elephants get sent home with the classics
+const HORSE_QUIPS = [
+  'THAT WAS FOR THE B- IN HORSEBACK RIDING!',
+  'SUMMA CUM LAUDE IF NOT FOR YOU!',
+  'THE ONE B- ON THE TRANSCRIPT!',
+  'STILL BITTER ABOUT THAT GRADE!',
+  'THE HORSE HELD A GRUDGE. SO DID SHE.',
+];
+const ELEPHANT_QUIPS = ['WAR EAGLE!', 'KICK SIX!', 'PUNT BAMA, PUNT!'];
+function defeatQuip(e) {
+  if (e.type === 'horse') return HORSE_QUIPS[Math.floor(Math.random() * HORSE_QUIPS.length)];
+  if (e.type === 'elephant') return ELEPHANT_QUIPS[Math.floor(Math.random() * ELEPHANT_QUIPS.length)];
+  return null;
+}
+// what the UK med students want to know (each bump costs 10 minutes)
+const STUDENT_QUESTIONS = [
+  'DR. RAVEN, WILL THIS BE ON THE TEST?',
+  'CAN YOU SIGN MY TEXTBOOK?',
+  'IS COFFEE A FOOD GROUP?',
+  'HOW MANY BONES ARE IN THE HAND AGAIN?',
+  'WHAT DOES THE SPLEEN EVEN DO?',
+  'CAN I SHADOW YOU... FOREVER?',
+  'IS IT NORMAL TO CRY IN ANATOMY LAB?',
+  'QUICK QUESTION... OK, ELEVEN QUESTIONS.',
+];
 function loseRunBooks(count) {
   const lost = [];
   for (let oi = G.order.length - 1; oi >= 0 && lost.length < count; oi--) {
@@ -1723,14 +1895,14 @@ function updatePlay() {
 
   // Coffee with cream and sugar restores one heart, but never exceeds three.
   for (const coffee of L.coffees) {
-    if (coffee.got || G.hearts >= 3) continue;
+    if (coffee.got || G.hearts >= MAX_HEARTS) continue;
     const cy = coffee.y + Math.sin(G.frame * 0.06 + coffee.phase) * 2;
     if (Math.abs(coffee.x - pcx) < 18 && Math.abs(cy + 7 - pcy) < 24) {
       coffee.got = true;
-      G.hearts = Math.min(3, G.hearts + 1);
+      G.hearts = Math.min(MAX_HEARTS, G.hearts + 1);
       audio.sfx('coffee');
       spawnBurst(coffee.x, cy + 6, '#f8f1dd', 16, 2.2);
-      addPopup('CREAM + SUGAR: +1 HEART!', coffee.x, cy - 12, '#fff4b5');
+      addPopup('CREAM + SUGAR: +1 COFFEE!', coffee.x, cy - 12, '#fff4b5');
     }
   }
 
@@ -1745,6 +1917,34 @@ function updatePlay() {
       // Book moths flutter in a figure-eight instead of circling like phones.
       e.x = e.ax + Math.sin(e.t * 0.035 * e.speed) * 54;
       e.y = e.ay + Math.sin(e.t * 0.07 * e.speed) * 24;
+    } else if (e.type === 'jelly') {
+      // jellyfish drift sideways and pulse upward with each squeeze
+      e.x = e.ax + Math.sin(e.t * 0.014 * e.speed) * 58;
+      e.y = e.ay + Math.sin(e.t * 0.045) * 26 - Math.max(0, Math.sin(e.t * 0.09)) * 6;
+    } else if (e.type === 'horse' || e.type === 'elephant') {
+      // gallop along the ground, wheeling around at the edge of their turf
+      e.x += e.dir * (e.type === 'horse' ? 1.5 : 1.1) * e.speed;
+      if (e.x > e.ax + 95) e.dir = -1;
+      else if (e.x < e.ax - 95) e.dir = 1;
+      const ecol = Math.max(0, Math.min(L.cols - 1, Math.floor(e.x / TILE)));
+      const egt = groundTopAt(ecol);
+      if (egt == null) { e.dir *= -1; e.x += e.dir * 4; } // don't gallop into pits
+      else e.y = egt - 11; // drawn at 2x — feet on the ground
+    } else if (e.type === 'student') {
+      // med students hurry over to ask a question; once answered (or handed a
+      // book) they stop chasing. Reading students stand perfectly still.
+      if (e.st !== 'reading') {
+        if (e.st !== 'asked' && Math.abs(pcx - e.x) < 160 && Math.abs(pcy - e.y) < 60) {
+          e.x += Math.sign(pcx - e.x) * 0.85 * e.speed;
+          e.dir = Math.sign(pcx - e.x) || e.dir;
+        } else {
+          e.x = e.ax + Math.sin(e.t * 0.012) * 26;
+          e.dir = Math.cos(e.t * 0.012) >= 0 ? 1 : -1;
+        }
+        const ecol = Math.max(0, Math.min(L.cols - 1, Math.floor(e.x / TILE)));
+        const egt = groundTopAt(ecol);
+        e.y = (egt == null ? 256 : egt) - 8;
+      }
     } else { // envelope: hover, then swoop at player
       if (e.st === 'hover') {
         e.x = e.ax + Math.sin(e.t * 0.03) * 20;
@@ -1764,15 +1964,25 @@ function updatePlay() {
         if (Math.abs(e.x - e.ax) < 6 && Math.abs(e.y - e.ay) < 6) { e.st = 'hover'; e.cool = 120; }
       }
     }
+    // students who got their answer (or a book to read) are harmless
+    if (e.type === 'student' && (e.st === 'asked' || e.st === 'reading')) continue;
     // collision with player
-    const ew = e.type === 'moth' ? 18 : 16, eh = e.type === 'moth' ? 12 : 13;
+    const ew = e.type === 'moth' ? 18 : e.type === 'horse' || e.type === 'elephant' ? 34 : e.type === 'jelly' ? 14 : e.type === 'student' ? 12 : 16;
+    const eh = e.type === 'moth' ? 12 : e.type === 'horse' || e.type === 'elephant' ? 20 : e.type === 'jelly' ? 12 : e.type === 'student' ? 16 : 13;
     if (pcx > e.x - ew / 2 - 6 && pcx < e.x + ew / 2 + 6 &&
         pcy > e.y - eh / 2 - 12 && pcy < e.y + eh / 2 + 12) {
       if (superOn) {
         e.alive = false;
         audio.sfx('pop');
         spawnBurst(e.x, e.y, '#ffffff', 12, 2.5);
-        addPopup('POOF!', e.x, e.y - 14, '#ffe45a');
+        addPopup(defeatQuip(e) || 'POOF!', e.x, e.y - 14, '#ffe45a');
+      } else if (e.type === 'student') {
+        // no heart lost — but the question costs 10 minutes off the clock
+        e.st = 'asked';
+        G.time = Math.max(0.5, G.time - 10);
+        audio.sfx('locked');
+        addPopup(STUDENT_QUESTIONS[Math.floor(Math.random() * STUDENT_QUESTIONS.length)], e.x, e.y - 26, '#7de8ff');
+        addPopup('-10 MINUTES!', P.x + P.w / 2, P.y - 14, '#ff5a5a');
       } else hurt(e.x);
     }
   }
@@ -1801,10 +2011,20 @@ function updatePlay() {
     for (const e of L.enemies) {
       if (!e.alive) continue;
       if (Math.abs(e.x - pr.x) < 14 && Math.abs(e.y - pr.y) < 14) {
+        if (e.type === 'student') {
+          // a med student hit with a book just... starts reading it
+          if (e.st === 'reading') continue; // already lost in a book
+          e.st = 'reading';
+          e.readCv = pr.cv; e.readCol = pr.colIdx;
+          pr.dead = true;
+          audio.sfx('collect');
+          addPopup('OOH, A BOOK!', e.x, e.y - 22, '#7de8ff');
+          break;
+        }
         e.alive = false; pr.dead = true;
         audio.sfx('pop');
         spawnBurst(e.x, e.y, '#ffffff', 12, 2.5);
-        addPopup("I'VE BEEN BY HERE TONIGHT!", e.x, e.y - 14, '#ffe45a');
+        addPopup(defeatQuip(e) || "I'VE BEEN BY HERE TONIGHT!", e.x, e.y - 14, '#ffe45a');
         break;
       }
     }
@@ -1907,13 +2127,17 @@ function updatePlay() {
     if (dn.sayT > 0) dn.sayT--;
   }
 
-  // freeing the caged family (kids on L7, Dr. Raven's parents on L1)
+  // freeing the caged family (kids on L7, Dr. Raven's parents on L1,
+  // CC & Uncle B with Butter & Bacon on L3)
   if (L.cage && !L.cage.open && bz.st === 'dead') {
     L.cage.open = true;
     audio.sfx('clear');
     if (L.cage.parents) {
       addPopup('THANK YOU, DR. RAVEN.', L.cage.x + 23, L.cage.y - 26, '#5aff8f');
       addPopup('YOU ARE OUR FAVORITE.', L.cage.x + 23, L.cage.y - 14, '#ffe45a');
+    } else if (L.cage.auburn) {
+      addPopup('THANK YOU, SISTER-WOMAN!', L.cage.x + 28, L.cage.y - 26, '#5aff8f');
+      addPopup('ARF! ARF!', L.cage.x + 28, L.cage.y - 14, '#ffe45a');
     } else {
       addPopup('MOM!!!', L.cage.x + 23, L.cage.y - 14, '#5aff8f');
       addPopup('THE KIDS ARE FREE!', L.cage.x + 23, L.cage.y - 26, '#ffe45a');
@@ -2112,7 +2336,7 @@ function drawWorld() {
   for (const coffee of L.coffees) {
     if (coffee.got || coffee.x < cam - 24 || coffee.x > cam + VW + 24) continue;
     const cy = coffee.y + Math.sin(G.frame * 0.06 + coffee.phase) * 2;
-    if (G.hearts < 3) {
+    if (G.hearts < MAX_HEARTS) {
       ctx.save();
       ctx.globalAlpha = Math.sin(G.frame * 0.12 + coffee.phase) * 0.12 + 0.2;
       ctx.fillStyle = '#fff4b5';
@@ -2166,18 +2390,23 @@ function drawWorld() {
     ctx.restore();
   }
 
-  // the caged family (kids on level 8, G-Daddy & Pep's kennel on level 1)
+  // the caged family (kids on L8, G-Daddy & Pep on L1, CC & Uncle B + dogs on L3)
   if (L.cage) {
     const cg = L.cage;
     ctx.fillStyle = 'rgba(10,6,18,.55)';
     ctx.fillRect(cg.x, cg.y, cg.w, cg.h);
     // the captives (hop happily once freed)
-    const roster = cg.parents ? SPR.parents : SPR.kids;
-    const step = cg.parents ? 20 : 14;
+    const roster = cg.parents ? SPR.parents
+      : cg.auburn ? [SPR.cc, SPR.uncleb, SPR.butter, SPR.bacon]
+      : SPR.kids;
+    const step = cg.parents ? 20 : cg.auburn ? 13 : 14;
     for (let i = 0; i < roster.length; i++) {
       const k = roster[i];
       const hop = cg.open ? Math.abs(Math.sin(G.frame * 0.12 + i * 1.3)) * 5 : 0;
-      const kx = cg.open ? cg.x + cg.w + 6 + i * step : cg.x + 3 + i * step;
+      // the Auburn four hop out to the LEFT — the right side is the exit door
+      const kx = !cg.open ? cg.x + 3 + i * step
+        : cg.auburn ? cg.x - 24 - i * 18
+        : cg.x + cg.w + 6 + i * step;
       ctx.drawImage(k, Math.floor(kx), Math.floor(cg.y + cg.h - k.height - hop));
     }
     if (!cg.open) { // iron bars + lock
@@ -2192,6 +2421,9 @@ function drawWorld() {
       if (cg.parents) {
         drawTextC('THANK YOU, DR. RAVEN.', cg.x + cg.w + 26, cg.y - 20, 1, '#5aff8f', '#000');
         drawTextC('YOU ARE OUR FAVORITE.', cg.x + cg.w + 26, cg.y - 10, 1, '#ffe45a', '#000');
+      } else if (cg.auburn) {
+        drawTextC('THANK YOU, SISTER-WOMAN!', cg.x - 50, cg.y - 20, 1, '#5aff8f', '#000');
+        drawTextC('ARF! ARF!', cg.x - 50, cg.y - 10, 1, '#ffe45a', '#000');
       } else {
         drawTextC('THANKS MOM!', cg.x + cg.w + 26, cg.y - 10, 1, '#5aff8f', '#000');
       }
@@ -2232,8 +2464,15 @@ function drawWorld() {
   for (const e of L.enemies) {
     if (!e.alive) continue;
     if (e.x < cam - 30 || e.x > cam + VW + 30) continue;
-    const spr = e.type === 'blot' ? SPR.blot : e.type === 'env' ? SPR.env : SPR.moth;
-    const wob = Math.sin(e.t * 0.1) * 1.5;
+    const spr = e.type === 'blot' ? SPR.blot : e.type === 'env' ? SPR.env
+      : e.type === 'jelly' ? SPR.jelly : e.type === 'horse' ? SPR.horse
+      : e.type === 'elephant' ? SPR.elephant : e.type === 'student' ? SPR.student
+      : SPR.moth;
+    const grounded = e.type === 'horse' || e.type === 'elephant' || e.type === 'student';
+    // ground runners bounce with their stride instead of hovering
+    const wob = grounded
+      ? (e.type === 'student' && e.st === 'reading' ? 0 : -Math.abs(Math.sin(e.t * 0.18)) * 2)
+      : Math.sin(e.t * 0.1) * 1.5;
     if (e.type === 'moth') { // alternating wing shimmer
       ctx.save();
       ctx.globalAlpha = Math.sin(e.t * 0.24) * 0.18 + 0.28;
@@ -2242,7 +2481,23 @@ function drawWorld() {
       ctx.fillRect(Math.floor(e.x + 9), Math.floor(e.y - 4 + wob), 3, 2);
       ctx.restore();
     }
-    ctx.drawImage(spr, Math.floor(e.x - spr.width / 2), Math.floor(e.y - spr.height / 2 + wob));
+    ctx.save();
+    if (e.type === 'jelly') ctx.globalAlpha = 0.72 + Math.sin(e.t * 0.09) * 0.18;
+    ctx.translate(Math.floor(e.x), Math.floor(e.y + wob));
+    // horses and elephants are big animals — draw at 2x
+    const sc = e.type === 'horse' || e.type === 'elephant' ? 2 : 1;
+    ctx.scale(grounded && e.dir > 0 ? -sc : sc, sc); // art faces left; flip to run right
+    ctx.drawImage(spr, -spr.width >> 1, -spr.height >> 1);
+    ctx.restore();
+    if (e.type === 'student') {
+      if (e.st === 'reading') {
+        // nose-deep in the thrown book, blocking nothing but the view
+        const bk = e.readCv || bookSprite(e.readCol || 0, false);
+        ctx.drawImage(bk, Math.floor(e.x + (e.dir > 0 ? 2 : -14)), Math.floor(e.y - 2));
+      } else if (e.st !== 'asked' && (G.frame >> 4) % 2 === 0) {
+        drawText('?', Math.floor(e.x - 2), Math.floor(e.y - 20 + wob), 2, '#7de8ff', '#000');
+      }
+    }
   }
 
   // player
@@ -2335,9 +2590,9 @@ function drawHUD() {
   drawText(pad(totalCollected(), 4) + '/' + TOTAL_BOOKS, 22, 8, 1, '#fff');
   // lengle stars
   drawText('*' + lengleCount() + '/' + TOTAL_LENGLE, 92, 8, 1, '#ffd23e');
-  // hearts
-  for (let i = 0; i < 3; i++) drawHeart(150 + i * 13, 6, i < G.hearts);
-  if (G.ramona) drawText('R', 190, 8, 1, '#ffd23e'); // ramona cheat active this level
+  // health: five cups of coffee (Jack's boss pips stay hearts)
+  for (let i = 0; i < MAX_HEARTS; i++) drawCup(144 + i * 12, 6, i < G.hearts);
+  if (G.ramona) drawText('R', 206, 8, 1, '#ffd23e'); // ramona cheat active this level
   // level name
   drawTextC('L' + (G.level + 1) + ' ' + LVL_META[G.level].name, VW / 2 + 10, 8, 1, '#c9b8ec');
   // throwable book ammo
@@ -2417,6 +2672,20 @@ function drawPowerDrama() {
     }
     drawTextC('SUPER READER - TRIPLE JUMP!', 0, titleY + titleLines.length * 19 + 6, 2, '#7de8ff', '#000');
     ctx.restore();
+  }
+}
+// HUD health pip: a little coffee mug, steaming while full
+function drawCup(x, y, full) {
+  ctx.fillStyle = full ? '#f4f4f8' : '#3a2438';
+  ctx.fillRect(x, y + 2, 8, 7);                       // mug
+  ctx.fillRect(x + 8, y + 3, 2, 5);                   // handle
+  ctx.fillStyle = full ? '#6e4423' : '#241a28';
+  ctx.fillRect(x + 1, y + 3, 6, 2);                   // the brew
+  if (full) {
+    ctx.fillStyle = 'rgba(255,244,181,.85)';          // steam
+    const s = (G.frame >> 3) % 2;
+    ctx.fillRect(x + 2 + s, y - 1, 1, 2);
+    ctx.fillRect(x + 5 - s, y - 2, 1, 2);
   }
 }
 function drawHeart(x, y, full) {
@@ -3274,6 +3543,15 @@ function drawPerfectEnd() {
   ctx.drawImage(SPR.scarlett, 300, 236);
   ctx.drawImage(SPR.hank, 316, 237);
   ctx.drawImage(SPR.ramona, 332, 237);
+  ctx.drawImage(SPR.cc, 196, 233);
+  ctx.drawImage(SPR.uncleb, 352, 232);
+  // Butter & Bacon zooming along the wet sand
+  ctx.drawImage(SPR.butter, Math.round(210 + Math.sin(f * 0.03) * 60), 209);
+  ctx.save();
+  ctx.translate(Math.round(260 - Math.sin(f * 0.03) * 60), 209);
+  ctx.scale(-1, 1);
+  ctx.drawImage(SPR.bacon, -16, 0);
+  ctx.restore();
   // the raven, swooping happily over the water
   ctx.drawImage(SPR.raven, Math.round(96 + Math.sin(f * 0.02) * 44), Math.round(96 + Math.sin(f * 0.055) * 9));
   // Jack the (good) Dog, floating with his birthday balloons
@@ -3526,11 +3804,14 @@ function drawIntro() {
   if (nl > 0) drawTextC('*' + nl + " L'ENGLE POWER BOOK" + (nl > 1 ? 'S' : '') + ' HIDDEN HERE *', VW / 2, 170, 1, '#ffd23e');
   drawTextC('120 SECONDS. REACH THE DOOR. GRAB EVERYTHING.', VW / 2, 192, 1, '#c9b8ec');
   const warn = G.level === 0 ? 'JACK HAS G-DADDY & PEP IN A KENNEL! SET THEM FREE!'
+    : G.level === 2 ? 'JACK CAGED CC, UNCLE B, BUTTER & BACON! SET THEM FREE!'
     : G.level === 6 ? 'JACK HAS SCARLETT, HANK & RAMONA IN A CAGE! SET THEM FREE!'
     : G.level === 7 ? 'GIANT JACK IS TWICE AS TALL AND HUNGRY FOR BOOKS!'
     : 'JACK THE DOG GUARDS THE EXIT' + (G.level > 0 ? ' - FASTER THAN BEFORE!' : '!');
+  const extra = G.level === 5 ? 'MED STUDENT QUESTIONS COST 10 MINUTES! TOSS THEM A BOOK!' : null;
   drawTextC(warn, VW / 2, 206, 1, '#ff5a5a');
-  if (G.stateT > 30 && (G.frame >> 4) % 2 === 0) drawTextC('PRESS ENTER', VW / 2, 220, 2, '#fff');
+  if (extra) drawTextC(extra, VW / 2, 216, 1, '#7de8ff');
+  if (G.stateT > 30 && (G.frame >> 4) % 2 === 0) drawTextC('PRESS ENTER', VW / 2, extra ? 230 : 220, 2, '#fff');
 }
 
 function drawOverlayBox() {
@@ -3690,7 +3971,14 @@ function render() {
 // enabled) get title music on load; everyone else gets it on their first key/click
 audio.unlock();
 // preview hooks: open index.html#perfect to watch the perfect ending without
-// collecting all 1,026 books first, or index.html#beach to jump to its finale
+// collecting all 1,026 books first, #beach to jump to its finale, or #l1..#l8
+// to drop straight into a level
+const lvlHash = location.hash.match(/^#l([1-8])$/);
 if (location.hash === '#perfect') startPerfect();
 else if (location.hash === '#beach') { G.state = 'perfectEnd'; G.stateT = 0; audio.play('happy'); }
+else if (lvlHash) {
+  applySave(loadSave());
+  startLevel(+lvlHash[1] - 1, true);
+  if (G.state === 'intro') { G.state = 'play'; audio.play('level'); }
+}
 requestAnimationFrame(loop);
