@@ -1135,6 +1135,8 @@ const G = {
   saveCache: null,
   levelSelectRun: false,
   tourMode: false, // "ending" cheat: picker shows every level + both endings
+  mapPos: null,    // where Dr. Raven stands on the overworld map
+  mapForce: false, // carry the tour-mode lock bypass through the map walk
 };
 function applySave(save) {
   G.collected = new Set(save ? save.collected : []);
@@ -3241,8 +3243,8 @@ function ensureMapCanvas() {
   }
 }
 function mapSeg() {
-  // walking into level G.level; before level 1 she walks in from off-route
-  const a = G.level === 0 ? MAP_START : MAP_STOPS[G.level - 1];
+  // walking to the chosen level from wherever she last stood
+  const a = G.mapPos || MAP_START;
   return { a, b: MAP_STOPS[G.level] };
 }
 function mapSegDur() {
@@ -3255,12 +3257,16 @@ function updateMap() {
   const dur = mapSegDur();
   if (!G.mapArrived && G.mapT >= dur) {
     G.mapArrived = true;
+    G.mapPos = MAP_STOPS[G.level];
     audio.sfx('collect');
   }
   if (pressed.Enter) {
-    if (!G.mapArrived) { G.mapT = dur; G.mapArrived = true; audio.sfx('menu'); }
-    else startLevel(G.level, true);
+    if (!G.mapArrived) {
+      G.mapT = dur; G.mapArrived = true; G.mapPos = MAP_STOPS[G.level];
+      audio.sfx('menu');
+    } else startLevel(G.level, true, G.mapForce);
   }
+  if (pressed.Tab || pressed.Escape) openLevelSelect(G.tourMode); // change of plans
 }
 function drawMap() {
   ensureMapCanvas();
@@ -3279,7 +3285,7 @@ function drawMap() {
   // pins + labels
   for (let i = 0; i < MAP_STOPS.length; i++) {
     const st = MAP_STOPS[i];
-    const visited = i < G.level, dest = i === G.level;
+    const visited = G.completedLevels.has(i), dest = i === G.level;
     if (st.heart) {
       ctx.fillStyle = visited || dest ? '#ff4560' : '#8a4556';
       ctx.fillRect(st.x - 3, st.y - 4, 3, 2); ctx.fillRect(st.x + 1, st.y - 4, 3, 2);
@@ -3986,9 +3992,21 @@ function updateSelect() {
     } else if (!G.tourMode && levelLocked(G.selIdx)) {
       audio.sfx('locked');
     } else {
+      // walk the overworld map to the chosen level first
       G.levelSelectRun = true;
       audio.sfx('door');
-      startLevel(G.selIdx, true, G.tourMode); // tour mode bypasses locks
+      G.level = G.selIdx;
+      G.mapForce = G.tourMode; // tour mode bypasses locks
+      const from = G.mapPos || MAP_START;
+      const to = MAP_STOPS[G.selIdx];
+      if (Math.hypot(to.x - from.x, to.y - from.y) < 6) {
+        startLevel(G.selIdx, true, G.tourMode); // already standing there
+      } else {
+        G.state = 'map'; G.stateT = 0;
+        G.mapT = 0; G.mapArrived = false;
+        audio.play('title');
+        audio.tempo(1);
+      }
     }
   }
   if (pressed.Tab || pressed.Escape) {
