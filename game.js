@@ -2611,6 +2611,14 @@ function drawTitle() {
   drawLogo(VW / 2, 52 + bob, 6, '#ffd23e', '#6e2a10');
   drawTextC('THE TIME-TRAVELING BOOKWORM', VW / 2, 92 + bob, 2, '#ffb0d8', '#000');
   drawTextC('44 YEARS. 1,026 BOOKS. ONE PSYCHOLOGIST.', VW / 2, 106 + bob, 1, '#c9b8ec', '#000');
+  // Birthday banner — angled like a party sticker and gently zooming in and out.
+  const birthdayPulse = 1 + Math.sin(G.frame * 0.08) * 0.12;
+  ctx.save();
+  ctx.translate(104, 42);
+  ctx.rotate(-Math.PI / 12);
+  ctx.scale(birthdayPulse, birthdayPulse);
+  drawTextC('HAPPY BIRTHDAY!', 0, -5, 2, '#fff', '#ff5abf');
+  ctx.restore();
   // raven mascot on logo
   ctx.drawImage(SPR.raven, VW / 2 + 78, 30 + bob);
   // dr. raven herself
