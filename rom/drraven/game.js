@@ -1411,8 +1411,14 @@ function startLevel(idx, freshHearts) {
   cam = 0;
   particles = []; popups = []; projs = []; lostBookFx = [];
   shotsUsed = 0; throwCool = 0;
-  for (const b of L.books) loadCover(b.i); // fetch real covers in background
-  G.state = 'intro';
+  for (const b of L.books) loadCover(b.i); // fetch real covers up front
+  // ARCADE BUILD: show a loading bar while this level's covers download, so the
+  // Pi does all the image work before play starts instead of stuttering during
+  // the first ~10s of the level. updateLoading advances to 'intro' when done.
+  G.loadStart = performance.now();
+  G.loadDone = 0;
+  G.loadTotal = L.books.length;
+  G.state = 'loading';
   G.stateT = 0;
   audio.stop();
 }
@@ -3089,6 +3095,36 @@ function updateTitle() {
     }
   }
 }
+// ARCADE BUILD: preload this level's book covers behind a progress bar.
+function updateLoading() {
+  G.frame++;
+  let done = 0;
+  for (const b of L.books) {
+    const c = covers[b.i];
+    if (c && (c.st === 'ok' || c.st === 'fail')) done++;
+  }
+  G.loadDone = done;
+  // Move on when every cover has resolved, or after 15s so a slow or offline
+  // network can never trap us on this screen (covers just fall back to sprites).
+  const timedOut = performance.now() - G.loadStart > 15000;
+  if (done >= G.loadTotal || timedOut) {
+    G.state = 'intro';
+    G.stateT = 0;
+  }
+}
+function drawLoading() {
+  ctx.fillStyle = '#0a0612'; ctx.fillRect(0, 0, VW, VH);
+  const meta = LVL_META[G.level];
+  drawTextC('LEVEL ' + (G.level + 1), VW / 2, 92, 3, '#9a86c4');
+  drawTextC(meta.name, VW / 2, 122, 2, '#ffd23e', '#3a2410');
+  const total = G.loadTotal || 1;
+  const frac = Math.max(0, Math.min(1, G.loadDone / total));
+  const bw = 300, bh = 16, bx = (VW - bw) / 2, by = 166;
+  ctx.fillStyle = '#241a38'; ctx.fillRect(bx, by, bw, bh);
+  ctx.fillStyle = '#7de8ff'; ctx.fillRect(bx + 2, by + 2, Math.round((bw - 4) * frac), bh - 4);
+  drawTextC('LOADING BOOK COVERS   ' + G.loadDone + ' / ' + total, VW / 2, 196, 1, '#c9b8ec');
+  if ((G.frame >> 4) % 2 === 0) drawTextC('PLEASE WAIT...', VW / 2, 214, 1, '#8a76b4');
+}
 function updateIntro() {
   G.frame++; updateFx();
   if (G.stateT > 20 && pressed.Enter) {
@@ -3348,6 +3384,7 @@ function step() {
     case 'select': updateSelect(); break;
     case 'map': updateMap(); break;
     case 'cutscene': updateCutscene(); break;
+    case 'loading': updateLoading(); break;
     case 'intro': updateIntro(); break;
     case 'play': updatePlay(); break;
     case 'inv': updateInv(); break;
@@ -3364,6 +3401,7 @@ function render() {
     case 'select': drawSelect(); break;
     case 'map': drawMap(); break;
     case 'cutscene': drawCutscene(); break;
+    case 'loading': drawLoading(); break;
     case 'intro': drawIntro(); break;
     case 'play': drawWorld(); drawHUD(); drawPowerDrama(); break;
     case 'inv': drawInventory(); break;

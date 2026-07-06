@@ -8,14 +8,18 @@ Genesis `.md`, arcade/MAME `.zip`) without rewriting the whole game in that
 console's machine code — and you asked me not to change the code. Any file
 claiming to be a "ROM" of this would be fake.
 
-The supported way to run an unmodified web game on a RetroPie arcade is the
-**Ports** system (the same menu that runs Doom, Quake, and other non-cartridge
-games). It launches the game through a script instead of an emulator, with the
-game code **completely untouched**.
+The supported way to run a web game on a RetroPie arcade is the **Ports**
+system (the same menu that runs Doom, Quake, and other non-cartridge games).
+It launches the game through a script instead of an emulator.
 
 - **EmulationStation system:** `Ports`
 - **"Romset":** none — Ports run a launch script, not a ROM image
 - **Runtime:** Chromium kiosk (full-screen) pointed at the local `index.html`
+
+> **Arcade-only tweak:** `drraven/game.js` here is the web game plus one small
+> addition for the cabinet — a **loading bar** that downloads each level's book
+> covers up front (the Pi stuttered for ~10s when it fetched them mid-level).
+> Gameplay is otherwise identical to the web version.
 
 ## Where to put it (over the network)
 

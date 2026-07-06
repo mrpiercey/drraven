@@ -62,18 +62,16 @@ fi
 log "screen resolution: ${SCREEN_RES:-unknown}  win_args: ${WIN_ARGS:-none}"
 log "launching Chromium: $CHROMIUM"
 
-# --blink-settings=imagesEnabled=false: each level places 80-180 books, and the
-# game tries to download+decode a real cover photo for every one at level start.
-# The Pi can't keep up, causing ~10s of stutter. Blocking image loads makes the
-# game fall back to its built-in pixel-art covers (its normal offline behavior),
-# so levels start instantly. The game code is untouched.
+# NOTE: images are intentionally left ENABLED. The arcade build of the game
+# (rom/drraven/game.js) shows a loading bar that downloads each level's book
+# covers up front, so the Pi does the image work before play instead of
+# stuttering during the level.
 
 "$CHROMIUM" \
   --kiosk "file://$GAMEDIR/index.html" \
   --start-fullscreen \
   $WIN_ARGS \
   --force-device-scale-factor=1 \
-  --blink-settings=imagesEnabled=false \
   --autoplay-policy=no-user-gesture-required \
   --user-data-dir="$HOME/.config/drraven-kiosk" \
   --no-sandbox \
