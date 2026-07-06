@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The Adventures of Dr. Raven — The Time Traveling Bookworm</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  :root {
+    --touch-controls-h: clamp(112px, 24vh, 156px);
+  }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: #0a0612;
+    overflow: hidden;
+    font-family: monospace;
+  }
+  #wrap {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  canvas {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    background: #0a0612;
+    box-shadow: 0 0 80px rgba(120, 60, 200, .35);
+  }
+  #hint {
+    position: fixed; bottom: 8px; left: 0; right: 0;
+    text-align: center; color: #6b5a8c; font-size: 11px;
+    letter-spacing: 1px; user-select: none;
+  }
+  #touch-controls {
+    display: none;
+  }
+  .touch-ui body {
+    overscroll-behavior: none;
+  }
+  .touch-ui #hint {
+    display: none;
+  }
+  .touch-ui #touch-controls {
+    position: fixed;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: clamp(14px, 5vw, 48px);
+    box-sizing: border-box;
+    width: 100%;
+    height: var(--touch-controls-h);
+    left: 0;
+    bottom: 0;
+    padding: 7px max(8px, env(safe-area-inset-right)) calc(7px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+    background: linear-gradient(180deg, transparent, rgba(10,6,18,.28));
+    pointer-events: none;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .touch-pad {
+    --pad-btn: clamp(42px, 10vw, 56px);
+    display: grid;
+    flex: 0 0 auto;
+    grid-template-columns: repeat(3, var(--pad-btn));
+    grid-template-rows: repeat(2, var(--pad-btn));
+    gap: 6px;
+  }
+  .touch-up { grid-column: 2; grid-row: 1; }
+  .touch-left { grid-column: 1; grid-row: 2; }
+  .touch-down { grid-column: 2; grid-row: 2; }
+  .touch-right { grid-column: 3; grid-row: 2; }
+  .touch-actions {
+    --action-w: clamp(56px, 14vw, 72px);
+    --action-h: clamp(42px, 10vh, 58px);
+    display: grid;
+    flex: 0 0 auto;
+    grid-template-columns: repeat(2, var(--action-w));
+    grid-template-rows: repeat(2, var(--action-h));
+    gap: 6px;
+  }
+  .touch-btn {
+    box-sizing: border-box;
+    min-width: 42px;
+    min-height: 42px;
+    padding: 0 4px;
+    border: 2px solid #7a52b0;
+    border-radius: 10px;
+    color: #f2eaff;
+    background: rgba(65,35,105,.68);
+    box-shadow: 0 4px 0 #241238, inset 0 1px 0 rgba(255,255,255,.16);
+    font: 700 12px/1 monospace;
+    letter-spacing: .4px;
+    text-align: center;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    pointer-events: auto;
+  }
+  .touch-pad .touch-btn {
+    font-size: 22px;
+  }
+  .touch-btn.jump {
+    border-color: #d9a516;
+    color: #fff4b5;
+    background: rgba(132,91,18,.72);
+    box-shadow: 0 4px 0 #493006, inset 0 1px 0 rgba(255,255,255,.18);
+  }
+  .touch-btn.action {
+    border-color: #cf4a96;
+    color: #ffe0f2;
+    background: rgba(126,32,85,.72);
+    box-shadow: 0 4px 0 #47102f, inset 0 1px 0 rgba(255,255,255,.18);
+  }
+  .touch-btn.aux {
+    color: #c9b8ec;
+    font-size: 10px;
+  }
+  .touch-btn.is-pressed {
+    transform: translateY(3px);
+    filter: brightness(1.35);
+    box-shadow: 0 1px 0 #241238, inset 0 2px 4px rgba(0,0,0,.22);
+  }
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="game" width="512" height="288"></canvas></div>
+<div id="hint">ARROWS / WASD move &nbsp;·&nbsp; SPACE jump &nbsp;·&nbsp; ENTER throw books / open doors &nbsp;·&nbsp; TAB inventory &nbsp;·&nbsp; M mute</div>
+<div id="touch-controls" aria-label="Game controls">
+  <div class="touch-pad" aria-label="Direction pad">
+    <button type="button" class="touch-btn touch-up" data-key="ArrowUp" aria-label="Up">▲</button>
+    <button type="button" class="touch-btn touch-left" data-key="ArrowLeft" aria-label="Left">◀</button>
+    <button type="button" class="touch-btn touch-down" data-key="ArrowDown" aria-label="Down">▼</button>
+    <button type="button" class="touch-btn touch-right" data-key="ArrowRight" aria-label="Right">▶</button>
+  </div>
+  <div class="touch-actions" aria-label="Action buttons">
+    <button type="button" class="touch-btn jump" data-key="Space">JUMP</button>
+    <button type="button" class="touch-btn action" data-key="Enter">ACTION</button>
+    <button type="button" class="touch-btn aux" data-key="Tab">BOOKS</button>
+    <button type="button" class="touch-btn aux" data-key="m">SOUND</button>
+  </div>
+</div>
+<script src="books.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
