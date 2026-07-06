@@ -746,13 +746,35 @@ const SAVE_KEY = 'drraven-save-v3';
 function loadSave() {
   try {
     const s = JSON.parse(localStorage.getItem(SAVE_KEY));
-    if (s && typeof s.level === 'number' && Array.isArray(s.collected)) return s;
+    if (s && typeof s.level === 'number' && Array.isArray(s.collected)) {
+      // Older saves only tracked the next linear level. Infer the chapters
+      // already finished so those players keep their progress.
+      const inferred = Array.from({ length: Math.max(0, Math.min(7, Math.floor(s.level))) }, (_, i) => i);
+      const completed = Array.isArray(s.completed)
+        ? s.completed.filter(i => Number.isInteger(i) && i >= 0 && i < LVL_META.length)
+        : inferred;
+      return {
+        level: Math.max(0, Math.min(LVL_META.length - 1, Math.floor(s.level))),
+        collected: s.collected,
+        completed,
+      };
+    }
   } catch (e) {}
   return null;
 }
+function nextResumeLevel(completed = G.completedLevels) {
+  for (let i = 0; i < LVL_META.length - 1; i++) if (!completed.has(i)) return i;
+  return LVL_META.length - 1;
+}
 function writeSave() {
   try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify({ level: G.level, collected: [...G.collected] }));
+    const save = {
+      level: nextResumeLevel(),
+      collected: [...G.collected],
+      completed: [...G.completedLevels].sort((a, b) => a - b),
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+    G.saveCache = save;
   } catch (e) {}
 }
 
@@ -762,6 +784,7 @@ const G = {
   state: 'title', // title, intro, play, inv, cleared, dead, timeup, ending
   level: 0,
   collected: new Set(),   // banked (completed levels)
+  completedLevels: new Set(), // levels finished, including out of order
   runSet: new Set(),      // this level attempt
   order: [],              // collect order for inventory
   hearts: 3,
@@ -774,7 +797,17 @@ const G = {
   stateT: 0,
   clearStats: null,
   saveCache: null,
+  levelSelectRun: false,
 };
+function applySave(save) {
+  G.collected = new Set(save ? save.collected : []);
+  G.order = save ? [...save.collected] : [];
+  G.completedLevels = new Set(save ? save.completed : []);
+}
+function finalBattleUnlocked() {
+  for (let i = 0; i < LVL_META.length - 1; i++) if (!G.completedLevels.has(i)) return false;
+  return true;
+}
 let L = null; // current level data
 const P = {   // player
   x: 60, y: 200, vx: 0, vy: 0, w: 14, h: 30,
@@ -1188,6 +1221,11 @@ function makeBgLayers(pal, idx) {
 
 // ---------------------------------------------------------- level lifecycle
 function startLevel(idx, freshHearts) {
+  if (idx === LVL_META.length - 1 && !finalBattleUnlocked()) {
+    G.levelSelectRun = false;
+    openLevelSelect();
+    return;
+  }
   G.level = idx;
   G.runSet = new Set();
   G.order = G.order.filter(i => G.collected.has(i)); // drop books from failed runs
@@ -1208,19 +1246,20 @@ function startLevel(idx, freshHearts) {
 }
 
 function completeLevel() {
+  const completedLevel = G.level;
   for (const i of G.runSet) G.collected.add(i);
   G.runSet = new Set();
-  const nBooksHere = LEVEL_BOOKS[G.level].length;
-  const gotHere = LEVEL_BOOKS[G.level].filter(i => G.collected.has(i)).length;
+  const nBooksHere = LEVEL_BOOKS[completedLevel].length;
+  const gotHere = LEVEL_BOOKS[completedLevel].filter(i => G.collected.has(i)).length;
   G.clearStats = { got: gotHere, of: nBooksHere, time: Math.ceil(G.time) };
-  G.level++;
+  G.completedLevels.add(completedLevel);
   writeSave();
   audio.stop();
   audio.sfx('clear');
-  if (G.level >= LVL_META.length) {
+  if (completedLevel === LVL_META.length - 1) {
     startCutscene();
-    try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
   } else {
+    if (!G.levelSelectRun) G.level = completedLevel + 1;
     G.state = 'cleared';
     G.stateT = 0;
   }
@@ -2628,30 +2667,32 @@ function drawCutscene() {
   }
 }
 
-// ---------------------------------------------------------- level select (cheat)
+// ---------------------------------------------------------- level select
+function selectableLevelCount() {
+  return finalBattleUnlocked() ? LVL_META.length : LVL_META.length - 1;
+}
 function openLevelSelect() {
   if (G.state === 'select') return;
   G.state = 'select';
   G.stateT = 0;
   G.selIdx = 0;
-  audio.sfx('lengle');
+  audio.play('title');
+  audio.tempo(1);
+  audio.sfx('menu');
 }
 function updateSelect() {
   G.frame++;
-  const nOpts = LVL_META.length + 1; // levels + THE ENDING
+  const nOpts = selectableLevelCount();
   if (pressed.ArrowDown) { G.selIdx = (G.selIdx + 1) % nOpts; audio.sfx('menu'); }
   if (pressed.ArrowUp) { G.selIdx = (G.selIdx + nOpts - 1) % nOpts; audio.sfx('menu'); }
   if (pressed.Enter && G.stateT > 8) {
-    if (G.selIdx < LVL_META.length) {
-      audio.sfx('door');
-      startLevel(G.selIdx, true);
-    } else { // the ending cutscene (stats screen follows it)
-      audio.stop();
-      startCutscene();
-    }
+    // nOpts excludes the final battle until chapters 1-7 are complete.
+    G.levelSelectRun = true;
+    audio.sfx('door');
+    startLevel(G.selIdx, true);
   }
   if (pressed.Tab || pressed.Escape) {
-    G.state = 'title'; G.menuSel = 0; G.stateT = 0;
+    G.state = 'title'; G.menuSel = 0; G.stateT = 0; G.levelSelectRun = false;
     audio.play('title');
   }
 }
@@ -2661,38 +2702,52 @@ function drawSelect() {
   ctx.fillStyle = 'rgba(125,232,255,.04)';
   for (let y = (G.frame >> 1) % 6; y < VH; y += 6) ctx.fillRect(0, y, VW, 1);
   drawTextC('LEVEL SELECT', VW / 2, 18, 3, '#ffd23e', '#3a2410');
-  drawTextC('* WOOF! CHEAT MODE UNLOCKED *', VW / 2, 44, 1, '#ff5abf', '#000');
-  for (let i = 0; i < LVL_META.length; i++) {
+  const finalOpen = finalBattleUnlocked();
+  drawTextC(finalOpen ? '* FINAL BATTLE UNLOCKED *' : 'COMPLETE EACH CHAPTER TO MARK IT DONE', VW / 2, 44, 1, finalOpen ? '#ff5abf' : '#c9b8ec', '#000');
+  const nOpts = selectableLevelCount();
+  for (let i = 0; i < nOpts; i++) {
     const sel = i === G.selIdx;
     const y = 64 + i * 20;
+    const done = G.completedLevels.has(i);
+    const label = i === LVL_META.length - 1 ? 'L8 FINAL BATTLE - JACK THE DOG' : 'L' + (i + 1) + ' ' + LVL_META[i].name;
+    const color = sel ? '#fff' : i === LVL_META.length - 1 ? '#ff5a5a' : done ? '#5aff8f' : '#8a76b4';
     if (sel) drawText('>', VW / 2 - 140, y, 2, (G.frame >> 3) % 2 ? '#ffe45a' : '#ff5abf');
-    drawText('L' + (i + 1) + ' ' + LVL_META[i].name, VW / 2 - 124, y, 2, sel ? '#fff' : '#8a76b4');
+    drawText(label, VW / 2 - 124, y, 2, color);
+    if (done) drawText('DONE', VW - 46, y + 3, 1, '#5aff8f', '#000');
   }
-  const endSel = G.selIdx === LVL_META.length;
-  const ey = 64 + LVL_META.length * 20;
-  if (endSel) drawText('>', VW / 2 - 140, ey, 2, (G.frame >> 3) % 2 ? '#ffe45a' : '#ff5abf');
-  drawText('THE ENDING', VW / 2 - 124, ey, 2, endSel ? '#ff5a5a' : '#8a4556');
-  drawTextC('ENTER: WARP   TAB: BACK TO TITLE', VW / 2, 268, 1, '#6b5a8c');
+  drawTextC('ENTER: PLAY   TAB: BACK TO TITLE', VW / 2, 268, 1, '#6b5a8c');
 }
 
 // ---------------------------------------------------------- screen updates (input)
+function titleOptions(save) {
+  const opts = [{ id: 'new', label: 'NEW GAME' }];
+  if (save) opts.push({ id: 'continue', label: 'CONTINUE (LEVEL ' + (save.level + 1) + ')' });
+  opts.push({ id: 'select', label: 'LEVEL SELECT' });
+  return opts;
+}
 function updateTitle() {
   G.frame++;
   if (!titleMusicStarted && G.frame > 5) { audio.play('title'); titleMusicStarted = true; }
   if (G.saveCache === undefined || G.saveCache === null) G.saveCache = loadSave() || false;
-  const nOpts = G.saveCache ? 2 : 1;
-  if ((pressed.ArrowDown || pressed.ArrowUp) && nOpts > 1) {
-    G.menuSel = 1 - G.menuSel; audio.sfx('menu');
-  }
+  const opts = titleOptions(G.saveCache);
+  const nOpts = opts.length;
+  if (pressed.ArrowDown) { G.menuSel = (G.menuSel + 1) % nOpts; audio.sfx('menu'); }
+  if (pressed.ArrowUp) { G.menuSel = (G.menuSel + nOpts - 1) % nOpts; audio.sfx('menu'); }
   G.menuSel = Math.min(G.menuSel, nOpts - 1);
   if (pressed.Enter) {
     audio.sfx('door');
-    if (G.saveCache && G.menuSel === 1) {
-      G.collected = new Set(G.saveCache.collected);
-      G.order = [...G.saveCache.collected];
+    const choice = opts[G.menuSel].id;
+    if (choice === 'continue') {
+      applySave(G.saveCache);
+      G.levelSelectRun = false;
       startLevel(G.saveCache.level, true);
+    } else if (choice === 'select') {
+      applySave(G.saveCache || null);
+      G.levelSelectRun = false;
+      openLevelSelect();
     } else {
-      G.collected = new Set(); G.order = [];
+      applySave(null);
+      G.levelSelectRun = false;
       G.state = 'story'; G.stateT = 0;
       storyPage = 0; storyChars = 0; lastThunder = 0; flashA = 0;
       audio.play('story');
@@ -2719,12 +2774,17 @@ function updateInv() {
 function updateCleared() {
   G.frame++; updateFx();
   if (G.stateT > 40 && pressed.Enter) {
-    // walk the overworld map to the next stop
-    G.state = 'map'; G.stateT = 0;
-    G.mapT = 0; G.mapArrived = false;
-    audio.play('title');
-    audio.tempo(1);
-    audio.sfx('menu');
+    if (G.levelSelectRun) {
+      G.levelSelectRun = false;
+      openLevelSelect();
+    } else {
+      // walk the overworld map to the next stop
+      G.state = 'map'; G.stateT = 0;
+      G.mapT = 0; G.mapArrived = false;
+      audio.play('title');
+      audio.tempo(1);
+      audio.sfx('menu');
+    }
   }
 }
 function updateDead() {
@@ -2738,7 +2798,7 @@ function updateTimeup() {
 function updateEnding() {
   G.frame++; updateFx();
   if (G.stateT > 60 && pressed.Enter) {
-    G.state = 'title'; G.menuSel = 0; G.saveCache = null;
+    G.state = 'title'; G.menuSel = 0; G.saveCache = null; G.levelSelectRun = false;
     audio.play('title');
   }
 }
@@ -2786,11 +2846,16 @@ function drawTitle() {
 
   // menu
   const save = G.saveCache;
-  const opts = save ? ['NEW GAME', 'CONTINUE (LEVEL ' + (save.level + 1) + ')'] : ['NEW GAME'];
+  const opts = titleOptions(save).map(opt => opt.label);
   for (let i = 0; i < opts.length; i++) {
     const sel = i === G.menuSel;
     const y = 138 + i * 16;
-    if (sel) drawTextC('>          <', VW / 2, y, 2, (G.frame >> 4) % 2 ? '#ffe45a' : '#ff5abf');
+    if (sel) {
+      const arrowColor = (G.frame >> 4) % 2 ? '#ffe45a' : '#ff5abf';
+      const optionW = textW(opts[i], 2);
+      drawText('>', VW / 2 - optionW / 2 - 14, y, 2, arrowColor);
+      drawText('<', VW / 2 + optionW / 2 + 8, y, 2, arrowColor);
+    }
     drawTextC(opts[i], VW / 2, y, 2, sel ? '#fff' : '#9a86c4');
   }
 
@@ -2863,7 +2928,8 @@ function drawCleared() {
   drawTextC('TIME REMAINING: ' + s.time + 'S', VW / 2, 132, 1, '#c9b8ec');
   drawTextC('LIBRARY TOTAL: ' + G.collected.size + ' / ' + TOTAL_BOOKS, VW / 2, 148, 1, '#c9b8ec');
   if (s.got === s.of) drawTextC('PERFECT SHELF! EVERY BOOK FOUND!', VW / 2, 168, 1, '#5aff8f');
-  if (G.stateT > 40 && (G.frame >> 4) % 2 === 0) drawTextC('PRESS ENTER FOR NEXT LEVEL', VW / 2, 210, 1, '#fff');
+  const prompt = G.levelSelectRun ? 'PRESS ENTER FOR LEVEL SELECT' : 'PRESS ENTER FOR NEXT LEVEL';
+  if (G.stateT > 40 && (G.frame >> 4) % 2 === 0) drawTextC(prompt, VW / 2, 210, 1, '#fff');
 }
 
 function drawDead() {

@@ -58,6 +58,9 @@ The story plays in pages — ENTER turns to the next part.
 ## Rules
 
 - **120 seconds per level.** Reach the exit door and press ENTER.
+- **LEVEL SELECT** on the title screen lets you play chapters 1–7 in any
+  order. The final battle with Jack stays hidden until all seven are
+  completed; the ending only plays after the final battle.
 - Books are **real pixelated covers** (from the CSV's image URLs) floating
   through each level — touch them to collect. Offline they fall back to
   pixel-art book sprites.
@@ -84,7 +87,5 @@ The story plays in pages — ENTER turns to the next part.
 - `books.js` — generated from `ravenread.csv` (title, author, year, L'Engle flag)
 - `ravenread.csv` — Dr. Raven's Goodreads export, the source of truth
 
-## Cheat
-
-On any screen, enter the classic code — ↑ ↑ ↓ ↓ ← → ← → B A ENTER — to open
-the level select, including a shortcut straight to the ending.
+The classic code — ↑ ↑ ↓ ↓ ← → ← → B A ENTER — also opens the same level
+selector, with the same final-battle progression requirement.
