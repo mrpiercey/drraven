@@ -43,7 +43,9 @@ Or open `index.html` in any browser. No build, no server needed.
 
 On phones and tablets, the game automatically switches to touch controls:
 a four-way direction pad, separate **JUMP** and **ACTION** buttons for
-simultaneous movement, plus **BOOKS** and **SOUND** buttons.
+simultaneous movement, plus **BOOKS** and **SOUND** buttons. The game fills
+the viewport with the controls overlaid in the lower corners and requests
+browser fullscreen on the first control tap when the device supports it.
 
 ## Story
 

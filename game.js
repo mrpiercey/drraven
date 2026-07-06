@@ -19,14 +19,16 @@ document.documentElement.classList.toggle('touch-ui', touchUI);
 
 function fitCanvas() {
   // fill as much of the window as possible while keeping the aspect ratio
-  const controlsH = touchUI ? touchControls.getBoundingClientRect().height : 26;
-  const availableH = Math.max(120, innerHeight - controlsH);
-  const s = Math.max(0.35, Math.min(innerWidth / VW, availableH / VH) * 0.98);
+  const availableH = Math.max(120, innerHeight - (touchUI ? 0 : 26));
+  const margin = touchUI ? 1 : 0.98;
+  const s = Math.max(0.35, Math.min(innerWidth / VW, availableH / VH) * margin);
   cvs.style.width = Math.round(VW * s) + 'px';
   cvs.style.height = Math.round(VH * s) + 'px';
 }
 addEventListener('resize', fitCanvas); fitCanvas();
 if (window.visualViewport) window.visualViewport.addEventListener('resize', fitCanvas);
+document.addEventListener('fullscreenchange', fitCanvas);
+document.addEventListener('webkitfullscreenchange', fitCanvas);
 
 // ---------------------------------------------------------- input
 const keys = {};
@@ -634,7 +636,25 @@ const audio = (() => {
 // the keyboard. Pointer capture prevents held directions from getting stuck.
 if (touchUI) {
   const touchPointers = new Map();
+  let fullscreenAttempted = false;
   const keyFor = btn => btn.dataset.key === 'Space' ? ' ' : btn.dataset.key;
+  const enterMobileFullscreen = () => {
+    if (fullscreenAttempted || document.fullscreenElement || document.webkitFullscreenElement) return;
+    fullscreenAttempted = true;
+    const root = document.documentElement;
+    try {
+      let result;
+      if (root.requestFullscreen) result = root.requestFullscreen({ navigationUI: 'hide' });
+      else if (root.webkitRequestFullscreen) result = root.webkitRequestFullscreen();
+      else if (root.webkitRequestFullScreen) result = root.webkitRequestFullScreen();
+      Promise.resolve(result).then(() => {
+        fitCanvas();
+        if (innerHeight > innerWidth && screen.orientation && screen.orientation.lock) {
+          screen.orientation.lock('landscape').catch(() => {});
+        }
+      }).catch(() => {});
+    } catch (e) {}
+  };
   const releasePointer = pointerId => {
     const active = touchPointers.get(pointerId);
     if (!active) return;
@@ -663,6 +683,7 @@ if (touchUI) {
       btn.setAttribute('aria-pressed', 'true');
       if (key === 'm') audio.toggleMute();
       audio.unlock();
+      enterMobileFullscreen();
     });
     btn.addEventListener('pointerup', e => { e.preventDefault(); releasePointer(e.pointerId); });
     btn.addEventListener('pointercancel', e => releasePointer(e.pointerId));

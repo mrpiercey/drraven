@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <title>The Adventures of Dr. Raven — The Time Traveling Bookworm</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
   :root {
     --touch-controls-h: clamp(112px, 24vh, 156px);
@@ -35,9 +38,6 @@
   .touch-ui body {
     overscroll-behavior: none;
   }
-  .touch-ui #wrap {
-    bottom: var(--touch-controls-h);
-  }
   .touch-ui #hint {
     display: none;
   }
@@ -54,8 +54,8 @@
     left: 0;
     bottom: 0;
     padding: 7px max(8px, env(safe-area-inset-right)) calc(7px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
-    background: linear-gradient(180deg, rgba(10,6,18,.72), rgba(18,10,34,.98));
-    border-top: 2px solid #3f2868;
+    background: linear-gradient(180deg, transparent, rgba(10,6,18,.28));
+    pointer-events: none;
     touch-action: none;
     user-select: none;
     -webkit-user-select: none;
@@ -89,7 +89,7 @@
     border: 2px solid #7a52b0;
     border-radius: 10px;
     color: #f2eaff;
-    background: rgba(65,35,105,.84);
+    background: rgba(65,35,105,.68);
     box-shadow: 0 4px 0 #241238, inset 0 1px 0 rgba(255,255,255,.16);
     font: 700 12px/1 monospace;
     letter-spacing: .4px;
@@ -98,6 +98,7 @@
     user-select: none;
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
+    pointer-events: auto;
   }
   .touch-pad .touch-btn {
     font-size: 22px;
@@ -105,13 +106,13 @@
   .touch-btn.jump {
     border-color: #d9a516;
     color: #fff4b5;
-    background: rgba(132,91,18,.9);
+    background: rgba(132,91,18,.72);
     box-shadow: 0 4px 0 #493006, inset 0 1px 0 rgba(255,255,255,.18);
   }
   .touch-btn.action {
     border-color: #cf4a96;
     color: #ffe0f2;
-    background: rgba(126,32,85,.9);
+    background: rgba(126,32,85,.72);
     box-shadow: 0 4px 0 #47102f, inset 0 1px 0 rgba(255,255,255,.18);
   }
   .touch-btn.aux {
