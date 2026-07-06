@@ -1038,49 +1038,26 @@ const TOTAL_BOOKS = BOOKS.length;
 const TOTAL_LENGLE = BOOKS.filter(b => b.le).length;
 
 // ---------------------------------------------------------- save
-const SAVE_KEY = 'drraven-save-v3';
+// Progress lives in memory for the CURRENT SESSION ONLY: unlocks and book
+// counts carry between levels while playing, but closing or reloading the
+// game starts completely fresh — previous playthroughs never carry over.
 const CAGE_LEVELS = [0, 2, 6]; // G-Daddy & Pep (L1), CC & Uncle B + dogs (L3), the kids (L7)
+let sessionSave = null;
 function loadSave() {
-  try {
-    const s = JSON.parse(localStorage.getItem(SAVE_KEY));
-    if (s && typeof s.level === 'number' && Array.isArray(s.collected)) {
-      // Older saves only tracked the next linear level. Infer the chapters
-      // already finished so those players keep their progress.
-      const inferred = Array.from({ length: Math.max(0, Math.min(7, Math.floor(s.level))) }, (_, i) => i);
-      const completed = Array.isArray(s.completed)
-        ? s.completed.filter(i => Number.isInteger(i) && i >= 0 && i < LVL_META.length)
-        : inferred;
-      // Rescues (the caged family on L1/L7) unlock the perfect ending. Older
-      // saves predate the field; completing a cage level implies the rescue,
-      // since the exit only opens once Jack is beaten and the cage springs.
-      const rescued = Array.isArray(s.rescued)
-        ? s.rescued.filter(i => Number.isInteger(i))
-        : completed.filter(i => CAGE_LEVELS.includes(i));
-      return {
-        level: Math.max(0, Math.min(LVL_META.length - 1, Math.floor(s.level))),
-        collected: s.collected,
-        completed,
-        rescued,
-      };
-    }
-  } catch (e) {}
-  return null;
+  return sessionSave;
 }
 function nextResumeLevel(completed = G.completedLevels) {
   for (let i = 0; i < LVL_META.length - 1; i++) if (!completed.has(i)) return i;
   return LVL_META.length - 1;
 }
 function writeSave() {
-  try {
-    const save = {
-      level: nextResumeLevel(),
-      collected: [...G.collected],
-      completed: [...G.completedLevels].sort((a, b) => a - b),
-      rescued: [...G.rescued].sort((a, b) => a - b),
-    };
-    localStorage.setItem(SAVE_KEY, JSON.stringify(save));
-    G.saveCache = save;
-  } catch (e) {}
+  sessionSave = {
+    level: nextResumeLevel(),
+    collected: [...G.collected],
+    completed: [...G.completedLevels].sort((a, b) => a - b),
+    rescued: [...G.rescued].sort((a, b) => a - b),
+  };
+  G.saveCache = sessionSave;
 }
 
 // ---------------------------------------------------------- game state
