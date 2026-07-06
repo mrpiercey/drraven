@@ -36,6 +36,9 @@ const pressed = {}; // edge-triggered, cleared each frame
 // ↑ ↑ ↓ ↓ ← → ← → B A ENTER — opens the level select
 const KONAMI = ['arrowup','arrowup','arrowdown','arrowdown','arrowleft','arrowright','arrowleft','arrowright','b','a','enter'];
 let konamiIdx = 0;
+// Typing RAMONA during a level = no heart loss for that level only (reset by startLevel)
+const RAMONA = 'ramona';
+let ramonaIdx = 0;
 // WASD aliases the arrow keys; Konami matching below uses the raw key so 'a' still counts as A
 const WASD = { w: 'ArrowUp', a: 'ArrowLeft', s: 'ArrowDown', d: 'ArrowRight' };
 const mapKey = key => WASD[key.toLowerCase()] || key;
@@ -44,8 +47,15 @@ addEventListener('keydown', e => {
   const key = mapKey(e.key);
   if (!keys[key]) pressed[key] = true;
   keys[key] = true;
-  if (e.key === 'm' || e.key === 'M') audio.toggleMute();
   const k = e.key.toLowerCase();
+  let ramonaTyping = false;
+  if ((G.state === 'intro' || G.state === 'play') && !G.ramona) {
+    if (k === RAMONA[ramonaIdx]) {
+      ramonaTyping = true; // the M in RAMONA shouldn't toggle mute
+      if (++ramonaIdx === RAMONA.length) { ramonaIdx = 0; activateRamona(); }
+    } else ramonaIdx = k === RAMONA[0] ? 1 : 0;
+  }
+  if (k === 'm' && !ramonaTyping) audio.toggleMute();
   if (k === KONAMI[konamiIdx]) {
     if (++konamiIdx === KONAMI.length) { konamiIdx = 0; openLevelSelect(); }
   } else konamiIdx = k === KONAMI[0] ? 1 : 0;
@@ -916,6 +926,7 @@ const G = {
   runSet: new Set(),      // this level attempt
   order: [],              // collect order for inventory
   hearts: 3,
+  ramona: false, // heart-loss immunity for the current level only
   time: LEVEL_TIME,
   superT: 0,
   powerBannerT: 0,
@@ -1392,6 +1403,7 @@ function startLevel(idx, freshHearts) {
   G.superT = 0;
   G.powerBannerT = 0; G.powerFlashA = 0; G.powerLightningT = 0; G.powerBookTitle = '';
   if (freshHearts) G.hearts = 3;
+  G.ramona = false; // the cheat never carries over — retype it each level
   L = genLevel(idx);
   P.x = 60; P.y = 180; P.vx = 0; P.vy = 0;
   P.safeX = 60; P.safeY = 180;
@@ -1478,9 +1490,14 @@ function loseRunBooks(count) {
   }
   return lost.length;
 }
+function activateRamona() {
+  G.ramona = true;
+  audio.sfx('lengle');
+  addPopup('RAMONA IS WATCHING OVER YOU!', P.x + P.w / 2, P.y - 14, '#ffd23e');
+}
 function hurt(px) {
   if (P.iframes > 0 || G.superT > 0) return;
-  G.hearts--;
+  if (!G.ramona) G.hearts--;
   const lost = loseRunBooks(3);
   if (lost) addPopup(lost + (lost === 1 ? ' BOOK FALLS AWAY!' : ' BOOKS FALL AWAY!'), P.x + P.w / 2, P.y - 14, '#7de8ff');
   P.iframes = 100;
@@ -1522,7 +1539,7 @@ function bossHit() {
   }
 }
 function pitFall() {
-  G.hearts--;
+  if (!G.ramona) G.hearts--;
   const lost = loseRunBooks(3);
   audio.sfx('hurt');
   G.shake = 12;
@@ -2298,6 +2315,7 @@ function drawHUD() {
   drawText('*' + lengleCount() + '/' + TOTAL_LENGLE, 92, 8, 1, '#ffd23e');
   // hearts
   for (let i = 0; i < 3; i++) drawHeart(150 + i * 13, 6, i < G.hearts);
+  if (G.ramona) drawText('R', 190, 8, 1, '#ffd23e'); // ramona cheat active this level
   // level name
   drawTextC('L' + (G.level + 1) + ' ' + LVL_META[G.level].name, VW / 2 + 10, 8, 1, '#c9b8ec');
   // throwable book ammo
