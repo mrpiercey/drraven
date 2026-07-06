@@ -64,8 +64,8 @@ The story plays in pages — ENTER turns to the next part.
 - Books are **real pixelated covers** (from the CSV's image URLs) floating
   through each level — touch them to collect. Offline they fall back to
   pixel-art book sprites.
-- Coffee cups with cream and sugar appear occasionally. Collecting one
-  restores one heart, up to the three-heart maximum.
+- Three to five coffee cups with cream and sugar are spaced through every
+  level. Collecting one restores one heart, up to the three-heart maximum.
 - Dr. Raven can always double-jump. During **SUPER READER** mode, she can
   triple-jump.
 - The 16 **Madeleine L'Engle** books glow in gold frames. Grabbing one

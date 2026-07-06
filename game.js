@@ -939,9 +939,9 @@ function genLevel(idx) {
     books.push({ i: bi, x: bx, y: Math.max(40, s - 70 - rnd() * 20), phase: rnd() * 6.28, got: false, gold: true, colIdx: 0 });
   });
 
-  // One or two occasional coffee breaks per chapter, always on solid ground.
+  // Three to five coffee breaks per chapter, spaced across solid ground.
   const coffees = [];
-  const coffeeCount = 1 + (rnd() < 0.4 ? 1 : 0);
+  const coffeeCount = 3 + Math.floor(rnd() * 3);
   for (let k = 0; k < coffeeCount; k++) {
     const ratio = (k + 1) / (coffeeCount + 1);
     const desired = Math.floor((startX + (endX - startX) * ratio + (rnd() - 0.5) * 180) / TILE);
